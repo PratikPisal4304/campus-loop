@@ -29,10 +29,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  listings      Listing[]
-  savedItems    SavedItem[]
-  participantIn ConversationParticipant[]
-  messagesSent  Message[]
+  listings        Listing[]
+  savedItems      SavedItem[]
+  participantIn   ConversationParticipant[]
+  messagesSent    Message[]
+  reviewsWritten  Review[]                 @relation("ReviewsWritten")
+  reviewsReceived Review[]                 @relation("ReviewsReceived")
+  reportsFiled    Report[]                 @relation("ReportsFiled")
+  reportsAgainst  Report[]                 @relation("ReportsAgainst")
 
   @@map("users")
 }
@@ -62,6 +66,8 @@ model Listing {
 
   savedBy       SavedItem[]
   conversations Conversation[]
+  reviews       Review[]
+  reports       Report[]
 
   // The Discover page's filter combination, in the order the query narrows.
   @@index([status, category, mode, createdAt])
@@ -106,6 +112,7 @@ model Conversation {
 
   participants ConversationParticipant[]
   messages     Message[]
+  reports      Report[]
 
   @@index([lastMessageAt])
   @@map("conversations")
@@ -142,4 +149,59 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+/// A rating one student leaves another after a deal.
+///
+/// This is what makes `User.ratingSum` / `ratingCount` mean something. Before it existed
+/// the trust score was displayed on every profile and every listing and could never
+/// change, so every student read "New" forever.
+model Review {
+  id        String   @id @default(cuid())
+  /// 1–5. Enforced in the domain and by a check constraint in the migration.
+  stars     Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  raterId String
+  rater   User   @relation("ReviewsWritten", fields: [raterId], references: [id], onDelete: Cascade)
+
+  subjectId String
+  subject   User   @relation("ReviewsReceived", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  /// The deal being rated — one review per rater per listing.
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([raterId, listingId])
+  @@index([subjectId, createdAt])
+  @@map("reviews")
+}
+
+/// A student flagging a listing, a person, or a conversation.
+///
+/// `/terms` promises we may suspend accounts used to scam or harass; this is the input
+/// that promise needs. Exactly one target is set, enforced in the domain.
+model Report {
+  id        String   @id @default(cuid())
+  reason    String
+  details   String?
+  /// open | reviewed | dismissed
+  status    String   @default("open")
+  createdAt DateTime @default(now())
+
+  reporterId String
+  reporter   User   @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  listingId String?
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  reportedUserId String?
+  reportedUser   User?   @relation("ReportsAgainst", fields: [reportedUserId], references: [id], onDelete: Cascade)
+
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("reports")
 }
