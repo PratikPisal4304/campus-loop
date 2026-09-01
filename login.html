@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Campus Loop | Login</title>
+
+    <link rel="stylesheet" href="login.css">
+
+</head>
+
+
+<body>
+
+
+    <!-- BACKGROUND -->
+
+    <div class="background">
+
+        <div class="orb orb-1"></div>
+
+        <div class="orb orb-2"></div>
+
+        <div class="orb orb-3"></div>
+
+        <div class="grid"></div>
+
+    </div>
+
+
+    <!-- MAIN -->
+
+    <div class="auth-container">
+
+
+        <!-- LEFT SIDE -->
+
+        <div class="welcome-section">
+
+
+            <div class="logo">
+
+                <div class="logo-mark">
+                    CL
+                </div>
+
+                <span>
+                    Campus Loop
+                </span>
+
+            </div>
+
+
+            <div class="welcome-content">
+
+
+                <div class="small-label">
+                    ✦ STUDENT MARKETPLACE
+                </div>
+
+
+                <h1>
+
+                    Welcome<br>
+
+                    <span>back.</span>
+
+                </h1>
+
+
+                <p>
+
+                    Your campus is always in circulation.
+
+                    Buy, rent, sell and exchange with
+                    students around you.
+
+                </p>
+
+
+                <div class="features">
+
+
+                    <div class="feature">
+
+                        <span>↗</span>
+
+                        <div>
+
+                            <strong>
+                                Buy & Sell
+                            </strong>
+
+                            <small>
+                                Useful things at student-friendly prices.
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="feature">
+
+                        <span>♻</span>
+
+                        <div>
+
+                            <strong>
+                                Keep it circulating
+                            </strong>
+
+                            <small>
+                                Give your unused items a second life.
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="feature">
+
+                        <span>◉</span>
+
+                        <div>
+
+                            <strong>
+                                Campus community
+                            </strong>
+
+                            <small>
+                                Connect with students around you.
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+
+            <div class="copyright">
+
+                CAMPUS LOOP © 2026
+
+            </div>
+
+
+        </div>
+
+
+        <!-- RIGHT SIDE -->
+
+        <div class="form-section">
+
+
+            <div class="glass-card">
+
+
+                <div class="form-header">
+
+
+                    <div class="mobile-logo">
+
+                        <div class="logo-mark">
+                            CL
+                        </div>
+
+                    </div>
+
+
+                    <div class="small-label">
+                        ACCOUNT ACCESS
+                    </div>
+
+
+                    <h2>
+                        Log in
+                    </h2>
+
+
+                    <p>
+                        Enter your details to continue to Campus Loop.
+                    </p>
+
+
+                </div>
+
+
+                <!-- LOGIN FORM -->
+
+                <form id="loginForm">
+
+
+                    <!-- EMAIL -->
+
+                    <div class="input-group">
+
+                        <label for="loginEmail">
+                            Email address
+                        </label>
+
+
+                        <div class="input-wrapper">
+
+                            <span class="input-icon">
+                                ✉
+                            </span>
+
+
+                            <input
+                                type="email"
+                                id="loginEmail"
+                                placeholder="you@example.com"
+                                required
+                                autocomplete="email"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- PASSWORD -->
+
+                    <div class="input-group">
+
+
+                        <div class="password-label">
+
+                            <label for="loginPassword">
+                                Password
+                            </label>
+
+
+                            <a href="#"
+                               onclick="forgotPassword(event)">
+
+                                Forgot password?
+
+                            </a>
+
+                        </div>
+
+
+                        <div class="input-wrapper">
+
+                            <span class="input-icon">
+                                ◆
+                            </span>
+
+
+                            <input
+                                type="password"
+                                id="loginPassword"
+                                placeholder="Enter your password"
+                                required
+                                autocomplete="current-password"
+                            >
+
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePassword()">
+
+                                ◉
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- SUBMIT -->
+
+                    <button
+                        type="submit"
+                        class="submit-btn">
+
+                        <span>
+                            Log in
+                        </span>
+
+                        <span class="arrow">
+                            ↗
+                        </span>
+
+                    </button>
+
+
+                </form>
+
+
+                <div class="divider">
+
+                    <span>
+                        OR
+                    </span>
+
+                </div>
+
+
+                <!-- GOOGLE -->
+
+                <button
+                    type="button"
+                    class="google-btn"
+                    onclick="googleLogin()">
+
+                    <span class="google-icon">
+                        G
+                    </span>
+
+                    Continue with Google
+
+                </button>
+
+
+                <!-- SIGNUP -->
+
+                <div class="signup-link">
+
+                    Don't have an account?
+
+                    <a href="signup.html">
+                        Create one
+                    </a>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- JAVASCRIPT -->
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>

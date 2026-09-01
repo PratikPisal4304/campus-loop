@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Campus Loop | Student Marketplace</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* Small additions for the multi-user features.
+           Your existing style.css can stay as it is. */
+
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #eadcc5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .login-link,
+        .logout-link {
+            color: inherit;
+            text-decoration: none;
+            border: 1px solid #555;
+            background: transparent;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .login-link:hover,
+        .logout-link:hover {
+            background: #222;
+            color: white;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-box input {
+            flex: 1;
+        }
+
+        .search-button {
+            border: 0;
+            background: transparent;
+            cursor: pointer;
+            font-size: 22px;
+            padding: 8px;
+        }
+
+        .search-button:hover {
+            transform: scale(1.1);
+        }
+
+        .message-seller-btn {
+            margin-top: 14px;
+            border: 1px solid #222;
+            background: #222;
+            color: white;
+            padding: 9px 14px;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: .2s ease;
+        }
+
+        .message-seller-btn:hover {
+            transform: translateY(-2px);
+            opacity: .9;
+        }
+
+        .loop-delete-btn {
+            border: 1px solid #d9534f;
+            background: transparent;
+            color: #d9534f;
+            padding: 7px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .loop-delete-btn:hover {
+            background: #d9534f;
+            color: white;
+        }
+
+        .loop-empty,
+        .conversation-empty,
+        .chat-empty,
+        .chat-login {
+            padding: 35px;
+            text-align: center;
+        }
+
+        .loop-empty button,
+        .conversation-empty a,
+        .chat-login a {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 10px 16px;
+            border-radius: 7px;
+            border: 0;
+            background: #222;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+
+
+<body>
+
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        <div class="logo-mark">CL</div>
+        <span>Campus Loop</span>
+    </div>
+
+    <div class="sidebar-title">
+        YOUR CAMPUS.<br>
+        IN CIRCULATION.
+    </div>
+
+    <nav>
+
+        <a href="#"
+           class="nav-link active"
+           onclick="showPage('discover'); return false;">
+            <span>⌂</span>
+            Discover
+        </a>
+
+        <a href="#"
+           class="nav-link"
+           onclick="showPage('loop'); return false;">
+            <span>⊞</span>
+            My Loop
+        </a>
+
+        <a href="#"
+           class="nav-link"
+           onclick="showPage('messages'); return false;">
+            <span>◯</span>
+            Messages
+            <b id="messageBadge"></b>
+        </a>
+
+    </nav>
+
+    <div class="divider"></div>
+
+    <a href="#"
+       class="list-link"
+       onclick="if(requireLogin()) showPage('list'); return false;">
+        <span>＋</span>
+        List an item
+    </a>
+
+    <div class="sidebar-bottom">
+        <div class="sidebar-small">
+            STUDENT MARKETPLACE
+        </div>
+
+        <p>
+            Buy • Rent • Sell • Exchange
+        </p>
+    </div>
+
+</aside>
+
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
+<main class="main">
+
+<!-- =====================================================
+     TOP BAR
+===================================================== -->
+
+<header class="topbar">
+
+    <div class="online">
+        <span class="green-dot"></span>
+        ONLINE CAMPUS
+        <span class="slash">/</span>
+        Student exchange season
+    </div>
+
+    <div class="top-right">
+
+        <button
+            class="top-icon"
+            title="Search"
+            onclick="document.getElementById('searchInput').focus();">
+            ⌕
+        </button>
+
+        <button
+            class="top-icon"
+            title="Messages"
+            onclick="showPage('messages');">
+            ♧
+        </button>
+
+        <div class="top-line"></div>
+
+        <div class="user-area">
+
+    <div class="user-avatar">
+        GU
+    </div>
+
+    <span class="user-name">
+        Guest
+    </span>
+
+    <button
+        class="logout-link"
+        onclick="logout()">
+        Logout
+    </button>
+
+</div>
+            <a href="/login.html" class="login-link">Login</a>
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+     DISCOVER
+===================================================== -->
+
+<section id="discover" class="page active-page">
+
+    <!-- HERO -->
+
+    <div class="hero">
+
+        <div class="circle circle-one"></div>
+        <div class="circle circle-two"></div>
+        <div class="circle circle-three"></div>
+
+        <div class="hero-content">
+
+            <div class="eyebrow orange">
+                ✧ STUDENT MARKETPLACE / EDUCATION
+            </div>
+
+            <h1>
+                Good stuff<br>
+                <span>should move.</span>
+            </h1>
+
+            <p>
+                Buy what you need. Rent what you need temporarily.
+                Sell what you no longer use. Exchange useful things
+                with students around campus.
+            </p>
+
+            <!-- SEARCH -->
+
+            <div class="search-row">
+
+                <div class="search-box">
+
+                    <span>⌕</span>
+
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder='Search "calculator", "textbook", "Arduino"...'
+                        autocomplete="off">
+
+                    <button
+                        type="button"
+                        class="search-button"
+                        onclick="searchItems(true)"
+                        title="Search">
+                        🔍
+                    </button>
+
+                </div>
+
+                <button
+                    class="filter-btn"
+                    onclick="toggleFilters()">
+                    ☷ &nbsp; Filters
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- MARKET TYPES -->
+
+    <div class="market-types">
+
+        <button class="market-type active"
+                onclick="filterMode('all', this)">
+            <div class="market-icon">◉</div>
+            <div>
+                <strong>All Items</strong>
+                <small>Everything</small>
+            </div>
+        </button>
+
+        <button class="market-type"
+                onclick="filterMode('rent', this)">
+            <div class="market-icon">🔄</div>
+            <div>
+                <strong>Rent</strong>
+                <small>Use temporarily</small>
+            </div>
+        </button>
+
+        <button class="market-type"
+                onclick="filterMode('sell', this)">
+            <div class="market-icon">🛍</div>
+            <div>
+                <strong>Buy</strong>
+                <small>Second-hand items</small>
+            </div>
+        </button>
+
+        <button class="market-type"
+                onclick="if(requireLogin()) showPage('list')">
+            <div class="market-icon">💰</div>
+            <div>
+                <strong>Sell</strong>
+                <small>List your items</small>
+            </div>
+        </button>
+
+        <button class="market-type"
+                onclick="filterMode('exchange', this)">
+            <div class="market-icon">♻</div>
+            <div>
+                <strong>Exchange</strong>
+                <small>Swap with students</small>
+            </div>
+        </button>
+
+        <button class="market-type"
+                onclick="filterMode('free', this)">
+            <div class="market-icon">🆓</div>
+            <div>
+                <strong>Free</strong>
+                <small>Give it away</small>
+            </div>
+        </button>
+
+    </div>
+
+
+    <!-- FILTER PANEL -->
+
+    <div id="filterPanel" class="filter-panel">
+
+        <div>
+            <label>CATEGORY</label>
+
+            <select id="categoryFilter"
+                    onchange="applyFilters()">
+                <option value="all">All categories</option>
+                <option value="books">Books & Textbooks</option>
+                <option value="calculators">Calculators</option>
+                <option value="electronics">Electronics</option>
+                <option value="lab">Lab Equipment</option>
+                <option value="engineering">Engineering Tools</option>
+                <option value="notes">Notes & Study Material</option>
+                <option value="projects">Project Components</option>
+                <option value="art">Art & Design</option>
+            </select>
+        </div>
+
+        <div>
+            <label>CONDITION</label>
+
+            <select id="conditionFilter"
+                    onchange="applyFilters()">
+                <option value="all">Any condition</option>
+                <option value="new">New</option>
+                <option value="like-new">Like New</option>
+                <option value="good">Good</option>
+                <option value="used">Used</option>
+            </select>
+        </div>
+
+        <button type="button"
+                class="browse-btn"
+                onclick="clearSearch()">
+            Clear filters
+        </button>
+
+    </div>
+
+
+    <!-- CATEGORIES -->
+
+    <div class="section-heading">
+
+        <div>
+            <div class="eyebrow teal">
+                EDUCATION MARKETPLACE
+            </div>
+
+            <h2>
+                What are you looking for?
+            </h2>
+        </div>
+
+        <button class="browse-btn"
+                onclick="categorySearch('all')">
+            Browse all ↗
+        </button>
+
+    </div>
+
+
+    <div class="categories">
+
+        <button onclick="categorySearch('books')">
+            📚 <span>Books</span>
+        </button>
+
+        <button onclick="categorySearch('calculators')">
+            🧮 <span>Calculators</span>
+        </button>
+
+        <button onclick="categorySearch('electronics')">
+            💻 <span>Electronics</span>
+        </button>
+
+        <button onclick="categorySearch('lab')">
+            🔬 <span>Lab Gear</span>
+        </button>
+
+        <button onclick="categorySearch('engineering')">
+            📐 <span>Engineering</span>
+        </button>
+
+        <button onclick="categorySearch('notes')">
+            📝 <span>Study Material</span>
+        </button>
+
+        <button onclick="categorySearch('projects')">
+            ⚙ <span>Projects</span>
+        </button>
+
+        <button onclick="categorySearch('art')">
+            🎨 <span>Art & Design</span>
+        </button>
+
+    </div>
+
+
+    <!-- ITEMS -->
+
+    <div class="section-heading items-heading">
+
+        <div>
+            <div class="eyebrow teal">
+                FRESH ON CAMPUS
+            </div>
+
+            <h2>
+                Find what you need.
+            </h2>
+        </div>
+
+        <span id="resultCount" class="result-count">
+            0 items
+        </span>
+
+    </div>
+
+
+    <!-- JavaScript loads demo + real database listings here -->
+
+    <div class="cards" id="itemsContainer"></div>
+
+
+    <div id="noResults" class="no-results">
+
+        <div>🔍</div>
+
+        <h3>
+            Nothing found
+        </h3>
+
+        <p>
+            Try another search or category.
+        </p>
+
+    </div>
+
+
+    <!-- CTA -->
+
+    <div class="sell-banner">
+
+        <div>
+
+            <div class="eyebrow orange">
+                HAVE SOMETHING USEFUL?
+            </div>
+
+            <h2>
+                Don't let good stuff sit idle.
+            </h2>
+
+            <p>
+                Sell it, rent it, exchange it,
+                or give it to another student.
+            </p>
+
+        </div>
+
+        <button onclick="if(requireLogin()) showPage('list')">
+            List an item ↗
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     MY LOOP
+===================================================== -->
+
+<section id="loop" class="page">
+
+    <div class="page-title">
+
+        <div>
+
+            <div class="eyebrow teal">
+                YOUR ACTIVITY
+            </div>
+
+            <h1>
+                Your loop,
+                <span id="loopUserName">Guest.</span>
+            </h1>
+
+            <p>
+                Everything you're buying, renting,
+                selling and exchanging.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="stats">
+
+        <div class="stat">
+
+            <span>
+                ITEMS FOR RENT
+            </span>
+
+            <strong id="rentingCount">
+                0
+            </strong>
+
+            <small>
+                your rental listings
+            </small>
+
+        </div>
+
+
+        <div class="stat">
+
+            <span>
+                ITEMS LISTED
+            </span>
+
+            <strong id="listedCount">
+                0
+            </strong>
+
+            <small>
+                your listings
+            </small>
+
+        </div>
+
+
+        <div class="stat yellow">
+
+            <span>
+                ITEMS FOR SALE
+            </span>
+
+            <strong id="sellingCount">
+                0
+            </strong>
+
+            <small>
+                currently listed
+            </small>
+
+        </div>
+
+
+        <div class="stat">
+
+            <span>
+                TRUST SCORE
+            </span>
+
+            <strong id="trustScore">
+                New
+            </strong>
+
+            <small>
+                build your reputation
+            </small>
+
+        </div>
+
+    </div>
+
+
+    <div class="loop-grid">
+
+        <div class="panel">
+
+            <div class="panel-heading">
+
+                <div>
+                    <span>YOUR ITEMS</span>
+
+                    <h2>
+                        Your listings
+                    </h2>
+                </div>
+
+                <label>
+                    MY LOOP
+                </label>
+
+            </div>
+
+
+            <div id="myLoopItems">
+
+                <div class="loop-empty">
+
+                    <div>📦</div>
+
+                    <h3>
+                        Login to see your Loop
+                    </h3>
+
+                    <p>
+                        Your listings will appear here.
+                    </p>
+
+                    <a href="/login.html"
+                       class="login-link">
+                        Login
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="pulse">
+
+            <span>
+                CAMPUS PULSE
+            </span>
+
+            <h2>
+                Your things can help another student.
+            </h2>
+
+            <p>
+                Every unused calculator, textbook,
+                lab kit and project component can
+                circulate instead of collecting dust.
+            </p>
+
+            <button onclick="if(requireLogin()) showPage('list')">
+                List another item ↗
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     MESSAGES
+===================================================== -->
+
+<section id="messages" class="page">
+
+    <div class="page-title">
+
+        <div>
+
+            <div class="eyebrow teal">
+                DIRECT LINE
+            </div>
+
+            <h1>
+                Messages
+            </h1>
+
+            <p>
+                Coordinate purchases, rentals and handoffs.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="message-container">
+
+        <!-- JavaScript creates real conversations here -->
+
+        <div
+            class="conversation-list"
+            id="conversationList">
+
+            <div class="conversation-empty">
+
+                <div>💬</div>
+
+                <h3>
+                    Login to view messages
+                </h3>
+
+                <p>
+                    Your conversations will appear here.
+                </p>
+
+                <a href="/login.html">
+                    Login
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- JavaScript creates the selected chat here -->
+
+        <div class="chat" id="chatBox">
+
+            <div class="chat-login">
+
+                <div>💬</div>
+
+                <h3>
+                    Select a conversation
+                </h3>
+
+                <p>
+                    Message a seller from Discover
+                    to start chatting.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     LIST ITEM
+===================================================== -->
+
+<section id="list" class="page">
+
+    <div class="list-layout">
+
+        <div>
+
+            <div class="eyebrow teal">
+                ADD TO THE CIRCULATION
+            </div>
+
+            <h1 class="list-heading">
+                List something<br>
+                <span>useful.</span>
+            </h1>
+
+            <p class="lead">
+                Sell, rent, exchange or give away
+                educational items to students on campus.
+            </p>
+
+
+            <form id="listingForm"
+                  onsubmit="createListing(event)">
+
+                <!-- ACTION -->
+
+                <label>
+
+                    What do you want to do?
+
+                    <div class="action-options">
+
+                        <button
+                            type="button"
+                            class="action-option active"
+                            data-action="sell"
+                            onclick="selectAction(this)">
+                            💰 Sell
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-option"
+                            data-action="rent"
+                            onclick="selectAction(this)">
+                            🔄 Rent
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-option"
+                            data-action="exchange"
+                            onclick="selectAction(this)">
+                            ♻ Exchange
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-option"
+                            data-action="free"
+                            onclick="selectAction(this)">
+                            🆓 Free
+                        </button>
+
+                    </div>
+
+                </label>
+
+
+                <!-- TITLE -->
+
+                <label>
+
+                    Item title
+
+                    <input
+                        type="text"
+                        id="itemTitle"
+                        placeholder="e.g. TI-84 Plus CE calculator"
+                        required>
+
+                </label>
+
+
+                <!-- CATEGORY + CONDITION -->
+
+                <div class="two-inputs">
+
+                    <label>
+
+                        Category
+
+                        <select id="itemCategory" required>
+
+                            <option value="books">
+                                Books & Textbooks
+                            </option>
+
+                            <option value="calculators">
+                                Calculators
+                            </option>
+
+                            <option value="electronics">
+                                Electronics
+                            </option>
+
+                            <option value="lab">
+                                Lab Equipment
+                            </option>
+
+                            <option value="engineering">
+                                Engineering Tools
+                            </option>
+
+                            <option value="notes">
+                                Notes & Study Material
+                            </option>
+
+                            <option value="projects">
+                                Project Components
+                            </option>
+
+                            <option value="art">
+                                Art & Design
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <label>
+
+                        Condition
+
+                        <select id="itemCondition" required>
+
+                            <option value="new">
+                                New
+                            </option>
+
+                            <option value="like-new">
+                                Like New
+                            </option>
+
+                            <option value="good">
+                                Good
+                            </option>
+
+                            <option value="used">
+                                Used
+                            </option>
+
+                        </select>
+
+                    </label>
+
+                </div>
+
+
+                <!-- DESCRIPTION -->
+
+                <label>
+
+                    Description
+
+                    <textarea
+                        id="itemDescription"
+                        placeholder="Condition, what's included, best handoff times..."
+                        required></textarea>
+
+                </label>
+
+
+                <!-- PRICE -->
+
+                <div class="two-inputs">
+
+                    <label>
+
+                        Price
+
+                        <input
+                            type="number"
+                            id="itemPrice"
+                            placeholder="500"
+                            min="0">
+
+                    </label>
+
+
+                    <label>
+
+                        Pickup area
+
+                        <input
+                            type="text"
+                            id="pickupArea"
+                            value="North Quad"
+                            required>
+
+                    </label>
+
+                </div>
+
+
+                <!-- IMAGE -->
+
+                <label>
+
+                    Add photos
+
+                    <div class="upload-box">
+
+                        <span>＋</span>
+
+                        <strong>
+                            Add photos
+                        </strong>
+
+                        <small>
+                            JPG, PNG up to 5MB
+                        </small>
+
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple>
+
+                    </div>
+
+                </label>
+
+
+                <button
+                    class="publish-btn"
+                    type="submit">
+                    Publish listing ↗
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <!-- CHECKLIST -->
+
+        <div class="checklist">
+
+            <span>
+                LISTING CHECKLIST
+            </span>
+
+            <ol>
+
+                <li>
+                    Name the exact edition or model
+                </li>
+
+                <li>
+                    Price below the cost of buying new
+                </li>
+
+                <li>
+                    Name a public campus pickup spot
+                </li>
+
+                <li>
+                    Mention every included piece
+                </li>
+
+                <li>
+                    Use clear photos
+                </li>
+
+            </ol>
+
+
+            <div class="tip">
+
+                ⓘ &nbsp;
+
+                Good listings get messages faster.
+                Be clear about condition and price.
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+</main>
+
+<script src="script.js"></script>
+
+</body>
+</html>
