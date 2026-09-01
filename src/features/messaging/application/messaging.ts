@@ -11,11 +11,13 @@ import {
   type Conversation,
   type Message,
 } from "../domain/conversation";
-import type { ConversationRepository, MessageRepository } from "../domain/ports";
+import type { ConversationRepository, ListingLookup, MessageRepository } from "../domain/ports";
 
 export interface MessagingDeps {
   readonly conversations: ConversationRepository;
   readonly messages: MessageRepository;
+  /** Used to establish who a listing's seller actually is — see `startConversation`. */
+  readonly listings: ListingLookup;
   /**
    * Runs `work` atomically. Typed as a plain function rather than imported from
    * `@/shared/db/transaction` so the use cases never see Mongo: the barrel injects the
@@ -77,7 +79,6 @@ function toMessageView(message: Message, viewerId: EntityId): MessageView {
 
 export interface StartConversationInput {
   readonly listingId: EntityId;
-  readonly sellerId: EntityId;
   readonly buyerId: EntityId;
 }
 
@@ -91,13 +92,22 @@ export async function startConversation(
   deps: MessagingDeps,
   input: StartConversationInput,
 ): Promise<Result<ConversationSummaryView>> {
-  if (!canMessage(input.sellerId, input.buyerId)) {
+  // The seller is derived from the listing, never accepted from the caller. It used to
+  // arrive as a hidden form field, which meant anyone could POST an arbitrary user id and
+  // open a thread with any student on the platform, labelled with a listing neither of
+  // them owned — unsolicited DMs with forged context.
+  const sellerId = await deps.listings.sellerIdFor(input.listingId);
+  if (!sellerId) {
+    return fail("LISTING_NOT_FOUND", "That listing no longer exists.");
+  }
+
+  if (!canMessage(sellerId, input.buyerId)) {
     // A Result, not a throw: this is a thing a user can do by accident (their own listing
     // still shows the button), not a bug the caller cannot recover from.
     return fail("CANNOT_MESSAGE_SELF", "This is your own listing — there's nobody to message.");
   }
 
-  const participants = participantKey(input.sellerId, input.buyerId);
+  const participants = participantKey(sellerId, input.buyerId);
   const existing = await deps.conversations.findByListingAndParticipants(
     input.listingId,
     participants,

@@ -5,6 +5,8 @@ import { getSessionUser } from "@/features/accounts";
 import { DisplayHeading, Eyebrow } from "@/components/brand/typography";
 import { signInAction } from "../_actions/auth";
 import { LoginForm } from "./login-form";
+import { publicEnv } from "@/shared/env.public";
+import { safeInternalPath } from "@/shared/safe-path";
 
 export const metadata: Metadata = {
   title: "Log in",
@@ -15,9 +17,11 @@ export default async function LoginPage(props: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await props.searchParams;
-  const raw = params.next;
-  // Validated here as well as in the action: this value is echoed into the form.
-  const next = typeof raw === "string" && /^\/(?!\/)/.test(raw) ? raw : "/";
+  // Auth.js sends `callbackUrl` (an absolute URL) when it bounces someone off a protected
+  // route; our own links send `next` (a path). Reading only `next` meant every bounce
+  // silently dropped the destination and dumped the student on Discover after logging in.
+  // Validated here as well as in the action, because this value is echoed into the form.
+  const next = safeInternalPath(params.next ?? params.callbackUrl, publicEnv.siteUrl);
 
   const user = await getSessionUser();
   if (user) redirect(next);

@@ -116,8 +116,14 @@ function makeStore(initial: Conversation | null = makeConversation()) {
 /** Straight pass-through: the transaction boundary itself is infrastructure's problem. */
 const runInTransaction = <T>(work: (uow: UnitOfWork) => Promise<T>) => work({ handle: null });
 
-function makeDeps(store = makeStore()): MessagingDeps {
-  return { conversations: store.conversations, messages: store.messages, runInTransaction };
+/** The listing lookup the use case consults for the authoritative seller. */
+function makeDeps(store = makeStore(), sellerIdFor = async () => seller as EntityId | null) {
+  return {
+    conversations: store.conversations,
+    messages: store.messages,
+    listings: { sellerIdFor },
+    runInTransaction,
+  } satisfies MessagingDeps;
 }
 
 describe("startConversation", () => {
@@ -125,7 +131,6 @@ describe("startConversation", () => {
     const store = makeStore(null);
     const result = await startConversation(makeDeps(store), {
       listingId,
-      sellerId: seller,
       buyerId: seller,
     });
 
@@ -140,7 +145,7 @@ describe("startConversation", () => {
     const deps = makeDeps(store);
     const result = await startConversation(
       { ...deps, conversations: { ...store.conversations, create } },
-      { listingId, sellerId: seller, buyerId: buyer },
+      { listingId, buyerId: buyer },
     );
 
     expect(result.ok).toBe(true);
@@ -151,21 +156,61 @@ describe("startConversation", () => {
   it("finds that same thread when the seller is the one starting it", async () => {
     // The stored pair is sorted, so the lookup must not depend on who is the buyer.
     const store = makeStore();
-    const result = await startConversation(makeDeps(store), {
-      listingId,
-      sellerId: buyer,
-      buyerId: seller,
-    });
+    // The listing belongs to `buyer` this time, so `seller` is the one making contact.
+    const result = await startConversation(
+      makeDeps(store, async () => buyer),
+      {
+        listingId,
+        buyerId: seller,
+      },
+    );
     expect(result.ok).toBe(true);
+  });
+
+  it("takes the seller from the listing, so a forged recipient cannot be injected", async () => {
+    // Regression: `sellerId` used to arrive as a hidden form field. Anyone could POST an
+    // arbitrary user id and open a thread with any student on the platform, labelled with
+    // a listing neither of them owned. The input no longer carries a seller at all, and
+    // this asserts the pair is built from the listing's real owner.
+    const store = makeStore(null);
+    const victim = toEntityId("victimuser000000000000");
+    const sellerIdFor = vi.fn(async () => seller as EntityId | null);
+
+    const result = await startConversation(makeDeps(store, sellerIdFor), {
+      listingId,
+      buyerId: buyer,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(sellerIdFor).toHaveBeenCalledWith(listingId);
+    expect(store.state.conversation?.participantIds).toEqual(participantKey(seller, buyer));
+    expect(store.state.conversation?.participantIds).not.toContain(victim);
+  });
+
+  it("refuses a listing that does not exist rather than opening an orphan thread", async () => {
+    const store = makeStore(null);
+    const result = await startConversation(
+      makeDeps(store, async () => null),
+      {
+        listingId,
+        buyerId: buyer,
+      },
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("LISTING_NOT_FOUND");
+    expect(store.state.conversation).toBeNull();
   });
 
   it("creates a thread with a sorted participant pair on first contact", async () => {
     const store = makeStore(null);
-    const result = await startConversation(makeDeps(store), {
-      listingId,
-      sellerId: buyer,
-      buyerId: seller,
-    });
+    const result = await startConversation(
+      makeDeps(store, async () => buyer),
+      {
+        listingId,
+        buyerId: seller,
+      },
+    );
 
     expect(result.ok).toBe(true);
     expect(store.state.conversation?.participantIds).toEqual(participantKey(seller, buyer));
@@ -230,6 +275,7 @@ describe("sendMessage", () => {
     const store = makeStore();
     const handles: unknown[] = [];
     const deps: MessagingDeps = {
+      listings: { sellerIdFor: async () => seller },
       conversations: {
         ...store.conversations,
         touch: async (id, input, uow) => {

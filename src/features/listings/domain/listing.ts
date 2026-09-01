@@ -128,6 +128,16 @@ export interface Listing {
   readonly createdAt: Date;
 }
 
+/**
+ * The most a listing may cost, in rupees.
+ *
+ * Bounded because `pricePaise` is a Postgres `Int`: anything above ₹21,474,836.47 in paise
+ * overflows `int4` and the insert throws. ₹2 crore is far beyond anything a student sells
+ * and leaves the ceiling well clear.
+ */
+export const MAX_PRICE_RUPEES = 20_000_000;
+export const MAX_PRICE_PAISE = MAX_PRICE_RUPEES * 100;
+
 export type PriceRule = "required" | "forbidden";
 
 /**
@@ -156,6 +166,13 @@ export type PriceViolation =
 export function validatePrice(input: PriceInput): readonly PriceViolation[] {
   const violations: PriceViolation[] = [];
   const rule = priceRuleFor(input.mode);
+
+  if (input.pricePaise !== null && input.pricePaise > MAX_PRICE_PAISE) {
+    violations.push({
+      field: "price",
+      message: `Keep the price under ₹${MAX_PRICE_RUPEES.toLocaleString("en-IN")}.`,
+    });
+  }
 
   if (rule === "required") {
     if (input.pricePaise === null || input.pricePaise <= 0) {

@@ -147,7 +147,6 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
           ) : (
             <MessageSellerButton
               listingId={listing.id}
-              sellerId={listing.sellerId}
               slug={listing.slug}
               isSignedIn={Boolean(viewer)}
             />

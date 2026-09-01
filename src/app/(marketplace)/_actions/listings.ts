@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { toEntityId } from "@/core/types/branded";
+import { isEntityId, toEntityId } from "@/core/types/branded";
 import { requireUser } from "@/features/accounts";
+import { isAllowedImageUrl } from "@/shared/media/image-source";
 import {
   CATEGORIES,
   CONDITIONS,
+  MAX_PRICE_RUPEES,
   MODES,
   RENT_UNITS,
   closeListing,
@@ -21,7 +23,9 @@ import type { ListingActionState } from "./form-state";
 
 const imageSchema = z.object({
   publicId: z.string().min(1),
-  url: z.url(),
+  // Pinned to the delivery origin. A bare z.url() accepts any host — and next/image
+  // throws on an unconfigured one, which turns a single listing into an outage.
+  url: z.url().refine(isAllowedImageUrl, "Images must be served from Cloudinary."),
   width: z.coerce.number().int().min(0).default(0),
   height: z.coerce.number().int().min(0).default(0),
 });
@@ -45,8 +49,20 @@ const listingSchema = z
     category: z.enum(CATEGORIES),
     condition: z.enum(CONDITIONS),
     mode: z.enum(MODES),
-    price: z.string().trim().optional(),
-    rentUnit: z.string().trim().optional(),
+    // Bounded so a huge number cannot overflow the Int column and 500 the request.
+    price: z
+      .string()
+      .trim()
+      .optional()
+      .refine(
+        (value) => !value || (Number.isFinite(Number(value)) && Number(value) >= 0),
+        "Enter a price as a number.",
+      )
+      .refine(
+        (value) => !value || Number(value) <= MAX_PRICE_RUPEES,
+        `Keep the price under ₹${MAX_PRICE_RUPEES.toLocaleString("en-IN")}.`,
+      ),
+    rentUnit: z.enum(RENT_UNITS).optional(),
     pickupArea: z
       .string()
       .trim()
@@ -80,7 +96,7 @@ const listingSchema = z
       });
     }
 
-    if (value.mode === "rent" && !RENT_UNITS.includes(value.rentUnit as never)) {
+    if (value.mode === "rent" && !value.rentUnit) {
       ctx.addIssue({
         code: "custom",
         path: ["rentUnit"],
@@ -134,6 +150,17 @@ function parseImages(raw: string | undefined): z.infer<typeof imageSchema>[] {
   }
 }
 
+/**
+ * Ids arrive from hidden form fields, so they are user input like anything else. Without
+ * this, a malformed value reaches Prisma and a foreign-key violation surfaces as a 500.
+ */
+const idSchema = z.string().trim().refine(isEntityId, "That listing no longer exists.");
+
+function parseId(formData: FormData, name: string): string | null {
+  const parsed = idSchema.safeParse(formData.get(name));
+  return parsed.success ? parsed.data : null;
+}
+
 const toPaise = (rupees: string | undefined) =>
   rupees && Number(rupees) > 0 ? Math.round(Number(rupees) * 100) : null;
 
@@ -156,7 +183,7 @@ export async function createListingAction(
   const result = await createListing(user.id, {
     ...rest,
     pricePaise: toPaise(price),
-    rentUnit: rest.mode === "rent" ? (rentUnit as "day" | "week" | "month") : null,
+    rentUnit: rest.mode === "rent" ? (rentUnit ?? null) : null,
     images: parseImages(images),
   });
 
@@ -178,7 +205,10 @@ export async function updateListingAction(
   formData: FormData,
 ): Promise<ListingActionState> {
   const user = await requireUser();
-  const listingId = String(formData.get("listingId") ?? "");
+  const listingId = parseId(formData, "listingId");
+  if (!listingId) {
+    return { status: "error", message: "That listing no longer exists." };
+  }
 
   const parsed = parseListingForm(formData);
   if (!parsed.success) {
@@ -193,7 +223,7 @@ export async function updateListingAction(
   const result = await updateListing(user.id, toEntityId(listingId), {
     ...rest,
     pricePaise: toPaise(price),
-    rentUnit: rest.mode === "rent" ? (rentUnit as "day" | "week" | "month") : null,
+    rentUnit: rest.mode === "rent" ? (rentUnit ?? null) : null,
     images: parseImages(images),
   });
 
@@ -213,14 +243,20 @@ export async function updateListingAction(
 
 export async function closeListingAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  await closeListing(user.id, toEntityId(String(formData.get("listingId") ?? "")));
+  const listingId = parseId(formData, "listingId");
+  if (!listingId) return;
+
+  await closeListing(user.id, toEntityId(listingId));
   revalidatePath("/");
   revalidatePath("/loop");
 }
 
 export async function deleteListingAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  await deleteListing(user.id, toEntityId(String(formData.get("listingId") ?? "")));
+  const listingId = parseId(formData, "listingId");
+  if (!listingId) return;
+
+  await deleteListing(user.id, toEntityId(listingId));
   revalidatePath("/");
   revalidatePath("/loop");
   revalidatePath("/saved");
@@ -230,6 +266,12 @@ export async function deleteListingAction(formData: FormData): Promise<void> {
 /** Returns the new saved state so the button can re-render without a round trip. */
 export async function toggleSavedAction(listingId: string): Promise<boolean> {
   const user = await requireUser();
+  if (!isEntityId(listingId)) {
+    // Previously this reached Prisma and raised a foreign-key error the client silently
+    // swallowed, so the heart just stopped working with no explanation.
+    throw new Error("Invalid listing id.");
+  }
+
   const saved = await toggleSaved(user.id, toEntityId(listingId));
   revalidatePath("/saved");
   return saved;

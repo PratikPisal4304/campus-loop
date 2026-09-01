@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { toEntityId } from "@/core/types/branded";
+import { isEntityId, toEntityId } from "@/core/types/branded";
 import { requireUser } from "@/features/accounts";
 import { MAX_MESSAGE_LENGTH, sendMessage, startConversation } from "@/features/messaging";
 import { IDLE_MESSAGE_STATE, type MessageActionState } from "./form-state";
@@ -53,8 +53,7 @@ export async function sendMessageAction(
 }
 
 const startSchema = z.object({
-  listingId: z.string().trim().min(1),
-  sellerId: z.string().trim().min(1),
+  listingId: z.string().trim().refine(isEntityId, "Invalid listing."),
   slug: z.string().trim().optional(),
 });
 
@@ -63,14 +62,13 @@ export async function startConversationAction(formData: FormData): Promise<void>
 
   const parsed = startSchema.safeParse({
     listingId: formData.get("listingId"),
-    sellerId: formData.get("sellerId"),
     slug: formData.get("slug"),
   });
   if (!parsed.success) redirect("/");
 
+  // No sellerId: the use case reads it from the listing itself.
   const result = await startConversation({
     listingId: toEntityId(parsed.data.listingId),
-    sellerId: toEntityId(parsed.data.sellerId),
     buyerId: user.id,
   });
 

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { z } from "zod";
 import { register, signIn } from "@/features/accounts";
+import { publicEnv } from "@/shared/env.public";
+import { safeInternalPath } from "@/shared/safe-path";
 
 export interface AuthFormState {
   readonly status: "idle" | "error";
@@ -51,7 +53,7 @@ function toFieldErrors(error: z.ZodError): Record<string, string> {
 
 /** Only ever an internal path — anything else here would be an open redirect. */
 function safeNext(value: FormDataEntryValue | null): string {
-  return typeof value === "string" && /^\/(?!\/)/.test(value) ? value : "/";
+  return safeInternalPath(value, publicEnv.siteUrl);
 }
 
 export async function signUpAction(

@@ -21,6 +21,8 @@ export {
   isCategory,
   isCondition,
   isMode,
+  MAX_PRICE_PAISE,
+  MAX_PRICE_RUPEES,
   priceRuleFor,
   swatchForKey,
   validatePrice,

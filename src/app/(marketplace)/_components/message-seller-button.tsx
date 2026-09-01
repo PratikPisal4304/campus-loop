@@ -10,14 +10,12 @@ import { startConversationAction } from "../_actions/messaging";
  */
 export function MessageSellerButton({
   listingId,
-  sellerId,
   slug,
   isSignedIn,
   isOwnListing = false,
   className,
 }: {
   listingId: string;
-  sellerId: string;
   slug: string;
   isSignedIn: boolean;
   /** Your own listing has nobody to message — the prototype showed the button anyway. */
@@ -42,7 +40,6 @@ export function MessageSellerButton({
   return (
     <form action={startConversationAction} className={className}>
       <input type="hidden" name="listingId" value={listingId} />
-      <input type="hidden" name="sellerId" value={sellerId} />
       {/* Carried through so a failed start can send the student back where they were. */}
       <input type="hidden" name="slug" value={slug} />
       <Button type="submit" variant="primary" size="lg" className="w-full">

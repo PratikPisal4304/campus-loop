@@ -27,6 +27,15 @@ export const getListingBySlug = (slug: Slug, viewerId: EntityId | null) =>
 
 export const getListingById = (id: EntityId) => queries.getListingById(deps, id);
 
+/**
+ * Who owns this listing? Exposed for the messaging feature's `ListingLookup` port, so it
+ * can establish the real seller instead of trusting one supplied by the client.
+ */
+export const getListingSellerId = async (id: EntityId): Promise<EntityId | null> => {
+  const listing = await deps.listings.findById(id);
+  return listing?.sellerId ?? null;
+};
+
 export const listMyListings = (sellerId: EntityId) => queries.listMyListings(deps, sellerId);
 
 export const listSellerListings = (sellerId: EntityId, viewerId: EntityId | null) =>
@@ -76,6 +85,8 @@ export {
   isCategory,
   isCondition,
   isMode,
+  MAX_PRICE_PAISE,
+  MAX_PRICE_RUPEES,
   priceRuleFor,
   type Category,
   type Condition,

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Listing as ListingRow } from "@prisma/client";
 import { toEntityId, type Slug } from "@/core/types/branded";
+import { isAllowedImageUrl } from "@/shared/media/image-source";
 import type {
   Category,
   Condition,
@@ -50,6 +51,9 @@ function parseImages(value: unknown): readonly ListingImage[] {
     if (typeof entry !== "object" || entry === null) return [];
     const record = entry as Record<string, unknown>;
     if (typeof record.publicId !== "string" || typeof record.url !== "string") return [];
+    // Defence in depth: a row written before this rule existed, or by any path that
+    // bypasses the action, must not be able to crash the page that renders it.
+    if (!isAllowedImageUrl(record.url)) return [];
     return [
       {
         publicId: record.publicId,

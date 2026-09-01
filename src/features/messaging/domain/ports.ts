@@ -27,6 +27,16 @@ export interface ListMessagesOptions {
   readonly before?: Date;
 }
 
+/**
+ * The one fact messaging needs from the listings feature: who owns a listing.
+ *
+ * A port rather than a direct import, so the use case stays free of cross-feature
+ * coupling and can be tested without the listings feature existing at all.
+ */
+export interface ListingLookup {
+  sellerIdFor(listingId: EntityId): Promise<EntityId | null>;
+}
+
 export interface ConversationRepository {
   findById(id: EntityId): Promise<Conversation | null>;
   findByListingAndParticipants(

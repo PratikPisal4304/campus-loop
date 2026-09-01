@@ -1,5 +1,6 @@
 import "server-only";
 import type { EntityId } from "@/core/types/branded";
+import { getListingSellerId } from "@/features/listings";
 import { withUnitOfWork } from "@/shared/db/transaction";
 import * as messaging from "./application/messaging";
 import { PrismaConversationRepository } from "./infrastructure/conversation.repository";
@@ -15,6 +16,9 @@ import { PrismaMessageRepository } from "./infrastructure/message.repository";
 const deps: messaging.MessagingDeps = {
   conversations: new PrismaConversationRepository(),
   messages: new PrismaMessageRepository(),
+  // Bound to the listings feature through its public barrel — the only cross-feature
+  // dependency in this app, and it exists to keep the seller authoritative.
+  listings: { sellerIdFor: getListingSellerId },
   runInTransaction: withUnitOfWork,
 };
 
