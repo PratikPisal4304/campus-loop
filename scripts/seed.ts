@@ -21,7 +21,21 @@ import { prisma } from "../src/shared/db/connection";
 
 const PASSWORD = process.env.SEED_PASSWORD ?? "campus1234";
 
-const STUDENTS = [
+/**
+ * Accounts may override the shared demo password. Every value here still has to satisfy
+ * the real signup policy (8+ chars, a letter and a digit) so a seeded student can log in,
+ * change their password through the UI, and log in again without hitting a wall the seed
+ * quietly walked around.
+ */
+interface SeedStudent {
+  readonly name: string;
+  readonly email: string;
+  readonly area: string;
+  readonly bio: string;
+  readonly password?: string;
+}
+
+const STUDENTS: readonly SeedStudent[] = [
   {
     name: "Alex Rivera",
     email: "alex@campus.edu",
@@ -70,7 +84,21 @@ const STUDENTS = [
     area: "North Quad",
     bio: "Maths and stats. Textbooks, calculators, handwritten notes.",
   },
-] as const;
+  {
+    name: "Srushti",
+    email: "srushti@gmail.com",
+    area: "North Quad",
+    bio: "",
+    password: "qwerty@12",
+  },
+  {
+    name: "Shraddha",
+    email: "shraddha@gmail.com",
+    area: "North Quad",
+    bio: "",
+    password: "qwerty@12",
+  },
+];
 
 interface SeedListing {
   seller: string;
@@ -441,10 +469,20 @@ const LISTINGS: SeedListing[] = [
 ];
 
 async function seed(): Promise<void> {
-  const passwordHash = await bcrypt.hash(PASSWORD, 12);
+  // bcrypt at cost 12 takes ~250ms, so hash each distinct password once rather than once
+  // per student — most of them share the demo password.
+  const hashes = new Map<string, string>();
+  async function hashFor(password: string): Promise<string> {
+    const cached = hashes.get(password);
+    if (cached) return cached;
+    const hash = await bcrypt.hash(password, 12);
+    hashes.set(password, hash);
+    return hash;
+  }
 
   const userIds = new Map<string, string>();
   for (const student of STUDENTS) {
+    const passwordHash = await hashFor(student.password ?? PASSWORD);
     const user = await prisma.user.upsert({
       where: { email: student.email },
       update: {
@@ -572,8 +610,10 @@ async function seed(): Promise<void> {
     process.stdout.write("Seeded saved items and one conversation\n");
   }
 
-  process.stdout.write(`\nDemo accounts — password: ${PASSWORD}\n`);
-  for (const student of STUDENTS) process.stdout.write(`  ${student.email}\n`);
+  process.stdout.write("\nDemo accounts\n");
+  for (const student of STUDENTS) {
+    process.stdout.write(`  ${student.email.padEnd(24)} ${student.password ?? PASSWORD}\n`);
+  }
 
   await prisma.$disconnect();
 }

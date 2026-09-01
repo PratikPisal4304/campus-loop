@@ -30,9 +30,14 @@ Generate the auth secret with:
 openssl rand -base64 32
 ```
 
-Sign in with any seeded account — `alex@campus.edu`, `priya@campus.edu`, `sam@campus.edu`,
-`mei@campus.edu`, `diego@campus.edu`, `fatima@campus.edu`, `tom@campus.edu`,
-`anika@campus.edu` — using the password in `SEED_PASSWORD` (default `campus1234`).
+Sign in with any seeded account:
+
+| Account | Password |
+| --- | --- |
+| `alex@campus.edu`, `priya@campus.edu`, `sam@campus.edu`, `mei@campus.edu`, `diego@campus.edu`, `fatima@campus.edu`, `tom@campus.edu`, `anika@campus.edu` | `SEED_PASSWORD` (default `campus1234`) |
+| `srushti@gmail.com`, `shraddha@gmail.com` | `qwerty@12` |
+
+The seed prints the full list with each account's password when it runs.
 
 Photo uploads are optional. Without Cloudinary credentials the upload box explains itself
 and listings fall back to their colour tile; everything else works.
