@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import type { EntityId, Slug } from "@/core/types/branded";
 import { prisma } from "@/shared/db/connection";
 import type { Listing, ListingStatus } from "../domain/listing";
+import { LISTING_PAGE_SIZE, LISTING_PAGE_SIZE_MAX } from "../domain/ports";
 import type {
   CreateListingInput,
   ListingPage,
@@ -12,9 +13,6 @@ import type {
   UpdateListingInput,
 } from "../domain/ports";
 import { toListing } from "./listing.mapper";
-
-const DEFAULT_LIMIT = 24;
-const MAX_LIMIT = 60;
 
 export class PrismaListingRepository implements ListingRepository {
   async findById(id: EntityId): Promise<Listing | null> {
@@ -55,12 +53,15 @@ export class PrismaListingRepository implements ListingRepository {
       ];
     }
 
-    const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
+    const limit = Math.min(query.limit ?? LISTING_PAGE_SIZE, LISTING_PAGE_SIZE_MAX);
+    // `?page=-3` reaches us as a negative skip; Prisma would reject it at the driver, so
+    // floor it here and serve the first page instead.
+    const skip = Number.isFinite(query.skip) ? Math.max(0, Math.trunc(query.skip ?? 0)) : 0;
     const [rows, total] = await Promise.all([
       prisma.listing.findMany({
         where,
         orderBy: orderFor(query.sort),
-        skip: query.skip ?? 0,
+        skip,
         take: limit,
       }),
       prisma.listing.count({ where }),

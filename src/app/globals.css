@@ -15,15 +15,26 @@
   --color-paper: #fffdf8;
   --color-ink: #171717;
   --color-dark: #222222;
-  --color-muted: #77746d;
+  /* Meta text. Darkened past the cream/hero pair because the same token also sits on
+     --color-highlight (the loop's highlighted stat card), the lightest-but-yellowest
+     ground we ship: #646159 reads 4.38:1 there. */
+  --color-muted: #615e56;
   --color-line: #ddd8cd;
   --color-orange: #f36b38;
   --color-orange-hover: #d95829;
   --color-yellow: #f4c84a;
-  --color-teal: #4d8f82;
-  --color-green: #8fae78;
+  --color-teal: #37695f;
+  --color-green: #587244;
   --color-blue: #7797b9;
   --color-purple: #8876a8;
+
+  /* The prototype's orange is a fill colour, not a text colour: #f36b38 reads 2.67:1 on
+     cream and 3.01:1 behind white. This is the same hue pushed down the ramp until it
+     clears 4.5:1 both as text on every ground we use and as a fill behind white — so it,
+     not --color-orange, is what --color-accent resolves to. --color-orange stays for
+     decorative fills and display type large enough to sit under the 3:1 rule. */
+  --color-accent-text: #a83a0c;
+  --color-accent-text-hover: #8f2f0c;
 
   /* Grounds that carry the editorial feel */
   --color-sidebar: #1c1c1b;
@@ -39,17 +50,27 @@
   --color-highlight: #f0d88c;
   --color-avatar: #eadcc5;
 
-  /* Feedback */
-  --color-danger: #c0392b;
-  --color-success: #4d7c4f;
+  /* Feedback. Both are used as inline text on cream and hero, so they sit on the same
+     4.5:1 floor as the rest of the palette rather than at the prototype's brightness. */
+  --color-danger: #b03024;
+  --color-success: #3f6a41;
 
   /* Semantic aliases — what components actually reference */
   --color-bg: var(--color-cream);
   --color-surface: var(--color-paper);
   --color-fg: var(--color-ink);
   --color-fg-muted: var(--color-muted);
-  --color-accent: var(--color-orange);
-  --color-accent-hover: var(--color-orange-hover);
+  --color-accent: var(--color-accent-text);
+  --color-accent-hover: var(--color-accent-text-hover);
+  /**
+   * The accent again, for the dark grounds — the sidebar and the banner.
+   *
+   * One token cannot serve both: clearing 4.5:1 on cream requires a luminance at or below
+   * ~0.156, while clearing it on the #1c1c1b sidebar requires ~0.228 or above. There is no
+   * overlap, so the darkened accent that fixed the light pages reads at 2.66:1 on the
+   * sidebar. The original bright orange is 5.66:1 there, so dark surfaces keep it.
+   */
+  --color-accent-on-dark: var(--color-orange);
   --color-border: var(--color-line);
 
   /* Listing-card swatches. A listing with no photo still gets a distinct block,
@@ -66,7 +87,7 @@
   /* Mode badges */
   --color-mode-rent: #3f776d;
   --color-mode-sell: #b94e25;
-  --color-mode-free: #69834e;
+  --color-mode-free: #587244;
   --color-mode-exchange: #61749a;
 
   /* Typography — two families, doing very different jobs */
@@ -132,10 +153,13 @@
 
 @layer components {
   /* The small uppercase mono kicker used above nearly every section, on badges,
-     stat captions and prices. It appears often enough to earn a class. */
+     stat captions and prices. It appears often enough to earn a class.
+
+     11px is the floor, not the prototype's 9px: at 0.16em tracking this carries section
+     names and prices, so it has to survive a 200% zoom and a low-vision reader. */
   .eyebrow {
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;

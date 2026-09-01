@@ -6,10 +6,14 @@ import type {
   ConversationRepository,
   CreateConversationInput,
   CreateMessageInput,
+  InboxDirectory,
+  ListConversationsOptions,
   MessageRepository,
   TouchConversationInput,
 } from "../domain/ports";
 import {
+  countUnread,
+  getConversationHeader,
   listInbox,
   openConversation,
   sendMessage,
@@ -34,6 +38,21 @@ function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
     createdAt: new Date("2026-02-01T09:00:00Z"),
     ...overrides,
   };
+}
+
+/** The slice a real repository would return: newest first, cursor-filtered, then capped. */
+function page(
+  conversations: readonly Conversation[],
+  userId: EntityId,
+  options: ListConversationsOptions = {},
+): readonly Conversation[] {
+  return conversations
+    .filter((conversation) => conversation.participantIds.includes(userId))
+    .filter((conversation) =>
+      options.before ? conversation.lastMessageAt < options.before : true,
+    )
+    .toSorted((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime())
+    .slice(0, options.limit ?? conversations.length);
 }
 
 /**
@@ -72,7 +91,9 @@ function makeStore(initial: Conversation | null = makeConversation()) {
       state.conversation = created;
       return created;
     },
-    listForUser: async () => (state.conversation ? [state.conversation] : []),
+    listForUser: async (userId: EntityId, options?: ListConversationsOptions) =>
+      page(state.conversation ? [state.conversation] : [], userId, options),
+    sumUnread: async (userId: EntityId) => state.conversation?.unread[userId] ?? 0,
     touch: async (_id: EntityId, input: TouchConversationInput) => {
       const current = state.conversation;
       if (!current) return;
@@ -116,12 +137,36 @@ function makeStore(initial: Conversation | null = makeConversation()) {
 /** Straight pass-through: the transaction boundary itself is infrastructure's problem. */
 const runInTransaction = <T>(work: (uow: UnitOfWork) => Promise<T>) => work({ handle: null });
 
+/**
+ * Names every id it is handed, and counts its calls — the point of the batch port is that
+ * an inbox of many rows still resolves in exactly two lookups.
+ */
+function makeDirectory() {
+  const calls = { participants: 0, listings: 0 };
+  const directory: InboxDirectory = {
+    participantsByIds: async (ids) => {
+      calls.participants += 1;
+      return ids.map((id) => ({ id, name: `Student ${id.slice(-2)}`, initials: "ST" }));
+    },
+    listingsByIds: async (ids) => {
+      calls.listings += 1;
+      return ids.map((id) => ({ id, title: `Listing ${id.slice(-2)}`, slug: `listing-${id}` }));
+    },
+  };
+  return { calls, directory };
+}
+
 /** The listing lookup the use case consults for the authoritative seller. */
-function makeDeps(store = makeStore(), sellerIdFor = async () => seller as EntityId | null) {
+function makeDeps(
+  store = makeStore(),
+  sellerIdFor = async () => seller as EntityId | null,
+  directory: InboxDirectory = makeDirectory().directory,
+) {
   return {
     conversations: store.conversations,
     messages: store.messages,
     listings: { sellerIdFor },
+    directory,
     runInTransaction,
   } satisfies MessagingDeps;
 }
@@ -276,6 +321,7 @@ describe("sendMessage", () => {
     const handles: unknown[] = [];
     const deps: MessagingDeps = {
       listings: { sellerIdFor: async () => seller },
+      directory: makeDirectory().directory,
       conversations: {
         ...store.conversations,
         touch: async (id, input, uow) => {
@@ -301,12 +347,128 @@ describe("sendMessage", () => {
 describe("listInbox", () => {
   it("returns views resolved from the viewer's side, not raw entities", async () => {
     const store = makeStore(makeConversation({ unread: { [seller]: 2, [buyer]: 3 } }));
-    const rows = await listInbox(makeDeps(store), seller);
+    const { rows } = await listInbox(makeDeps(store), seller);
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.otherParticipantId).toBe(buyer);
     expect(rows[0]?.unreadCount).toBe(2);
     expect(rows[0]).not.toHaveProperty("participantIds");
+  });
+
+  it("labels rows from the directory, falling back for a deleted account or listing", async () => {
+    const store = makeStore();
+    const empty: InboxDirectory = {
+      participantsByIds: async () => [],
+      listingsByIds: async () => [],
+    };
+
+    const named = await listInbox(makeDeps(store), seller);
+    expect(named.rows[0]?.otherName).toBe(`Student ${buyer.slice(-2)}`);
+    expect(named.rows[0]?.listingSlug).toBe(`listing-${listingId}`);
+
+    const missing = await listInbox(makeDeps(store, undefined, empty), seller);
+    expect(missing.rows[0]?.otherName).toBe("Former student");
+    expect(missing.rows[0]?.listingTitle).toBe("Listing removed");
+    // A null slug is what tells the route not to link a listing that is gone.
+    expect(missing.rows[0]?.listingSlug).toBeNull();
+  });
+
+  it("caps the page and hands back a cursor, without over-reporting the extra row", async () => {
+    // Regression: the inbox used to load every conversation a student had ever had.
+    const conversations = Array.from({ length: 5 }, (_, index) =>
+      makeConversation({
+        id: toEntityId(`conversation-${index}`),
+        lastMessageAt: new Date(Date.UTC(2026, 1, 1, 10 + index)),
+      }),
+    );
+    const store = makeStore();
+    const listForUser = vi.fn(async (userId: EntityId, options?: ListConversationsOptions) =>
+      page(conversations, userId, options),
+    );
+    const deps = { ...makeDeps(store), conversations: { ...store.conversations, listForUser } };
+
+    const first = await listInbox(deps, seller, { limit: 2 });
+    expect(first.rows).toHaveLength(2);
+    expect(first.hasMore).toBe(true);
+    // Asks for one more than it shows, so "is there more?" costs no extra query.
+    expect(listForUser).toHaveBeenCalledWith(seller, { limit: 3 });
+    expect(first.nextCursor).toEqual(new Date(Date.UTC(2026, 1, 1, 13)));
+
+    const last = await listInbox(deps, seller, {
+      limit: 2,
+      before: new Date(Date.UTC(2026, 1, 1, 11)),
+    });
+    expect(last.rows).toHaveLength(1);
+    expect(last.hasMore).toBe(false);
+    expect(last.nextCursor).toBeNull();
+  });
+
+  it("resolves the whole page in two directory calls, not two per row", async () => {
+    const conversations = Array.from({ length: 4 }, (_, index) =>
+      makeConversation({
+        id: toEntityId(`conversation-${index}`),
+        lastMessageAt: new Date(Date.UTC(2026, 1, 1, 10 + index)),
+      }),
+    );
+    const store = makeStore();
+    const { calls, directory } = makeDirectory();
+    const deps = {
+      ...makeDeps(store, undefined, directory),
+      conversations: {
+        ...store.conversations,
+        listForUser: async (userId: EntityId, options?: ListConversationsOptions) =>
+          page(conversations, userId, options),
+      },
+    };
+
+    const inbox = await listInbox(deps, seller);
+    expect(inbox.rows).toHaveLength(4);
+    expect(calls).toEqual({ participants: 1, listings: 1 });
+  });
+
+  it("skips the directory entirely for an empty inbox", async () => {
+    const { calls, directory } = makeDirectory();
+    const inbox = await listInbox(makeDeps(makeStore(null), undefined, directory), seller);
+
+    expect(inbox.rows).toEqual([]);
+    expect(inbox.hasMore).toBe(false);
+    expect(calls).toEqual({ participants: 0, listings: 0 });
+  });
+});
+
+describe("countUnread", () => {
+  it("comes from the aggregate, not from summing a loaded inbox", async () => {
+    const store = makeStore(makeConversation({ unread: { [seller]: 7, [buyer]: 3 } }));
+    const listForUser = vi.fn(store.conversations.listForUser);
+    const deps = { ...makeDeps(store), conversations: { ...store.conversations, listForUser } };
+
+    expect(await countUnread(deps, seller)).toBe(7);
+    // The badge renders on every page in the app; it must not scan conversations to do it.
+    expect(listForUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("getConversationHeader", () => {
+  it("resolves the other student's name without marking the thread read", async () => {
+    const store = makeStore(makeConversation({ unread: { [seller]: 2, [buyer]: 3 } }));
+    const result = await getConversationHeader(makeDeps(store), {
+      conversationId,
+      userId: seller,
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.otherName).toBe(`Student ${buyer.slice(-2)}`);
+    // `generateMetadata` runs alongside the page render — it must not clear the badge too.
+    expect(store.state.conversation?.unread[seller]).toBe(2);
+  });
+
+  it("refuses a non-participant with FORBIDDEN", async () => {
+    const result = await getConversationHeader(makeDeps(), {
+      conversationId,
+      userId: stranger,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("FORBIDDEN");
   });
 });
 

@@ -39,8 +39,25 @@ declare module "@auth/core/jwt" {
   }
 }
 
-/** Routes that require a signed-in student. Everything else is public to browse. */
-const PROTECTED_PREFIXES = ["/loop", "/saved", "/messages", "/settings", "/listings/new"];
+/**
+ * Route roots that require a signed-in student. Everything else is public to browse.
+ *
+ * Matched by whole path segment, not by string prefix. `startsWith("/listings/new")` also
+ * matched `/listings/new-lab-coat` — a real, public listing page that demanded a login
+ * purely because of how its title slugged.
+ */
+const PROTECTED_ROOTS = [
+  "/loop",
+  "/saved",
+  "/messages",
+  "/settings",
+  "/admin",
+  "/listings/new",
+];
+
+function isUnder(pathname: string, root: string): boolean {
+  return pathname === root || pathname.startsWith(`${root}/`);
+}
 
 export const authConfig = {
   pages: { signIn: "/login", error: "/login" },
@@ -51,7 +68,7 @@ export const authConfig = {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;
       const needsAuth =
-        PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+        PROTECTED_ROOTS.some((root) => isUnder(pathname, root)) ||
         // /listings/[slug]/edit, but not /listings/[slug]
         /^\/listings\/[^/]+\/edit$/.test(pathname);
       if (!needsAuth) return true;

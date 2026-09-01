@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { DisplayHeading, Eyebrow } from "@/components/brand/typography";
 import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
@@ -17,10 +18,10 @@ export default function GlobalError({
 
   return (
     <main className="px-page flex min-h-screen flex-col items-center justify-center text-center">
-      <p className="eyebrow text-accent">Something broke</p>
-      <h1 className="mt-4 text-[clamp(40px,6vw,68px)] leading-[0.95] font-bold tracking-[-0.05em]">
+      <Eyebrow tone="orange">Something broke</Eyebrow>
+      <DisplayHeading as="h1" size="page" className="mt-4">
         That didn&apos;t work.
-      </h1>
+      </DisplayHeading>
       <p className="text-fg-muted mt-6 max-w-md text-[14px] leading-relaxed">
         Something went wrong on our side. Trying again usually sorts it.
       </p>

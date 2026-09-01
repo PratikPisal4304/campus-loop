@@ -4,11 +4,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Slug } from "@/core/types/branded";
 import { getProfile, getSessionUser } from "@/features/accounts";
-import { getListingBySlug, listActiveSlugs } from "@/features/listings";
+import { acceptsEnquiries, getListingBySlug, listActiveSlugs } from "@/features/listings";
 import { Eyebrow } from "@/components/brand/typography";
 import { toEntityId } from "@/core/types/branded";
 import { SaveButton } from "../../_components/save-button";
 import { MessageSellerButton } from "../../_components/message-seller-button";
+import {
+  ListingActionToast,
+  ListingOwnerControls,
+  ListingStatusBadge,
+} from "../../_components/listing-owner-controls";
 
 const SWATCH_CLASS: Record<string, string> = {
   blue: "bg-swatch-blue",
@@ -47,52 +52,20 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
   const seller = await getProfile(toEntityId(listing.sellerId));
   const isOwner = viewer?.id === listing.sellerId;
   const cover = listing.images[0];
+  const open = acceptsEnquiries(listing.status);
 
   return (
     <div className="px-page mx-auto grid max-w-[1100px] gap-12 py-[55px] lg:grid-cols-[1.2fr_0.8fr]">
-      <div>
-        <div
-          className={`relative flex h-[380px] items-end overflow-hidden rounded-lg p-7 ${SWATCH_CLASS[listing.swatch] ?? "bg-swatch-blue"}`}
-        >
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-12 -right-12 h-[260px] w-[260px] rounded-full border border-white/40"
-          />
-          {cover && (
-            <Image
-              src={cover.url}
-              alt={listing.title}
-              fill
-              sizes="(max-width: 1024px) 100vw, 60vw"
-              className="object-cover"
-              priority
-            />
-          )}
-          <span className="relative z-2 rounded-xs bg-white px-2.5 py-1.5 font-mono text-[9px] font-bold tracking-[0.1em] uppercase">
-            {listing.modeLabel}
-          </span>
+      <ListingActionToast />
+
+      {/* The identity block is FIRST in source order so a phone shows the title, price and
+          the call to action before the artwork; the explicit columns put it back on the
+          right on a wide screen. */}
+      <aside className="h-fit lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Eyebrow tone="orange">{listing.categoryLabel}</Eyebrow>
+          <ListingStatusBadge status={listing.status} />
         </div>
-
-        {listing.images.length > 1 && (
-          <div className="mt-3 grid grid-cols-4 gap-3">
-            {listing.images.slice(1).map((image) => (
-              <div key={image.url} className="relative h-24 overflow-hidden rounded-sm">
-                <Image src={image.url} alt="" fill sizes="20vw" className="object-cover" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        <section className="mt-9">
-          <Eyebrow className="text-fg-muted">Description</Eyebrow>
-          <p className="text-fg mt-3 text-[14px] leading-[1.8] whitespace-pre-line">
-            {listing.description}
-          </p>
-        </section>
-      </div>
-
-      <aside className="h-fit lg:sticky lg:top-24">
-        <Eyebrow tone="orange">{listing.categoryLabel}</Eyebrow>
         <h1 className="mt-3 text-[32px] leading-[1.1] font-bold tracking-[-0.035em]">
           {listing.title}
         </h1>
@@ -138,18 +111,27 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
 
         <div className="mt-5 flex flex-col gap-2.5">
           {isOwner ? (
-            <Link
-              href={`/listings/${listing.slug}/edit`}
-              className="border-border hover:border-accent hover:text-accent flex h-11 items-center justify-center rounded-sm border text-[13px] font-semibold transition-colors"
-            >
-              Edit your listing
-            </Link>
-          ) : (
+            <ListingOwnerControls
+              listingId={listing.id}
+              slug={listing.slug}
+              status={listing.status}
+              size="md"
+            />
+          ) : open ? (
             <MessageSellerButton
               listingId={listing.id}
               slug={listing.slug}
               isSignedIn={Boolean(viewer)}
             />
+          ) : (
+            // Offering "Message seller" here would be the app promising something the
+            // seller has already ended.
+            <p className="border-border text-fg-muted rounded-sm border border-dashed p-4 text-[12px] leading-relaxed">
+              {listing.status === "sold"
+                ? "This one has been sold, so it's no longer available."
+                : "The seller has closed this listing."}{" "}
+              Have a look at what else is on campus.
+            </p>
           )}
 
           {viewer && !isOwner && (
@@ -161,6 +143,47 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
           ⓘ Meet in a public spot on campus and check the item before you pay.
         </p>
       </aside>
+
+      <div className="lg:col-start-1 lg:row-start-1">
+        <div
+          className={`relative flex h-[380px] items-end overflow-hidden rounded-lg p-7 ${SWATCH_CLASS[listing.swatch] ?? "bg-swatch-blue"}`}
+        >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-12 -right-12 h-[260px] w-[260px] rounded-full border border-white/40"
+          />
+          {cover && (
+            <Image
+              src={cover.url}
+              alt={listing.title}
+              fill
+              sizes="(max-width: 1024px) 100vw, 60vw"
+              className="object-cover"
+              priority
+            />
+          )}
+          <span className="relative z-2 rounded-xs bg-white px-2.5 py-1.5 font-mono text-[10px] font-bold tracking-[0.1em] uppercase">
+            {listing.modeLabel}
+          </span>
+        </div>
+
+        {listing.images.length > 1 && (
+          <div className="mt-3 grid grid-cols-4 gap-3">
+            {listing.images.slice(1).map((image) => (
+              <div key={image.url} className="relative h-24 overflow-hidden rounded-sm">
+                <Image src={image.url} alt="" fill sizes="20vw" className="object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <section className="mt-9">
+          <Eyebrow className="text-fg-muted">Description</Eyebrow>
+          <p className="text-fg mt-3 text-[14px] leading-[1.8] whitespace-pre-line">
+            {listing.description}
+          </p>
+        </section>
+      </div>
     </div>
   );
 }

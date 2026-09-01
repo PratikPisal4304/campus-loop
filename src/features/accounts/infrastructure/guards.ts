@@ -1,6 +1,6 @@
 import "server-only";
-import { redirect } from "next/navigation";
-import { UnauthenticatedError } from "@/core/domain/errors";
+import { notFound, redirect } from "next/navigation";
+import { ForbiddenError, UnauthenticatedError } from "@/core/domain/errors";
 import { toEmail, toEntityId, type EntityId } from "@/core/types/branded";
 import { publicEnv } from "@/shared/env.public";
 import { safeInternalPath } from "@/shared/safe-path";
@@ -36,6 +36,32 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) throw new UnauthenticatedError();
+  return user;
+}
+
+/**
+ * Assert a signed-in student holding a particular role.
+ *
+ * For server actions. Roles come off the JWT, which the `session` callback populates from
+ * the database at sign-in, so a student promoted to admin picks it up on their next login
+ * rather than mid-session.
+ */
+export async function requireRole(role: Role): Promise<SessionUser> {
+  const user = await requireUser();
+  if (user.role !== role) throw new ForbiddenError();
+  return user;
+}
+
+/**
+ * The same check for a page, answering with a 404 instead of a 403.
+ *
+ * A "you are not an admin" screen confirms that an admin surface exists at this URL and
+ * invites someone to go looking for a way in. A student who wanders onto /admin should
+ * see what a student sees for any URL that is not theirs: nothing here.
+ */
+export async function requireRoleOrNotFound(role: Role): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user || user.role !== role) notFound();
   return user;
 }
 

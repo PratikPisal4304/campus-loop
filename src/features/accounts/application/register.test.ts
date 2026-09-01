@@ -41,6 +41,9 @@ function makeDeps(overrides: Partial<UserRepository> = {}): AccountDeps {
       email: input.email,
     }),
     updateProfile: async () => null,
+    findCredentialsById: async () => null,
+    updatePasswordHash: async () => false,
+    delete: async () => false,
     ...overrides,
   };
   return { users, hasher: fakeHasher };

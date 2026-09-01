@@ -46,6 +46,18 @@ export class PrismaUserRepository implements UserRepository {
     return { user: toDomain(user), passwordHash };
   }
 
+  async findCredentialsById(
+    id: EntityId,
+  ): Promise<{ user: User; passwordHash: string } | null> {
+    const row = await prisma.user.findUnique({
+      where: { id },
+      select: { ...PUBLIC_FIELDS, passwordHash: true },
+    });
+    if (!row) return null;
+    const { passwordHash, ...user } = row;
+    return { user: toDomain(user), passwordHash };
+  }
+
   async emailExists(email: Email): Promise<boolean> {
     const found = await prisma.user.findUnique({ where: { email }, select: { id: true } });
     return found !== null;
@@ -76,6 +88,27 @@ export class PrismaUserRepository implements UserRepository {
       // P2025 — the row disappeared between the guard and the write. The caller's contract
       // is "null means gone", not an exception.
       return null;
+    }
+  }
+
+  async updatePasswordHash(id: EntityId, passwordHash: string): Promise<boolean> {
+    try {
+      await prisma.user.update({ where: { id }, data: { passwordHash }, select: { id: true } });
+      return true;
+    } catch {
+      // P2025 — the account was deleted between the guard and the write.
+      return false;
+    }
+  }
+
+  async delete(id: EntityId): Promise<boolean> {
+    try {
+      // Listings, saved items, conversation participation, messages, reviews and reports
+      // all cascade from this row, so there is nothing to clean up by hand.
+      await prisma.user.delete({ where: { id }, select: { id: true } });
+      return true;
+    } catch {
+      return false;
     }
   }
 }

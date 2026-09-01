@@ -48,6 +48,9 @@ export async function sendMessageAction(
   // a concrete href; the inbox needs it too, for the preview and the unread badge.
   revalidatePath("/messages/[conversationId]", "page");
   revalidatePath("/messages");
+  // The unread badge is rendered by the marketplace layout, on every page in the app.
+  // Without this the recipient's badge stays as stale as their last navigation.
+  revalidatePath("/", "layout");
 
   return IDLE_MESSAGE_STATE;
 }
@@ -81,5 +84,6 @@ export async function startConversationAction(formData: FormData): Promise<void>
   }
 
   revalidatePath("/messages");
+  revalidatePath("/", "layout");
   redirect(`/messages/${result.value.id}`);
 }

@@ -24,9 +24,8 @@ export default function ForgotPasswordPage() {
       </p>
 
       <p className="bg-panel-sunk text-fg-muted mt-4 rounded-sm p-4 text-[12px] leading-relaxed">
-        Building this project locally? Every seeded demo account uses the password from
-        <code className="text-fg mx-1 font-mono">SEED_PASSWORD</code>
-        in your <code className="text-fg font-mono">.env.local</code>.
+        In the meantime you can still browse everything on Campus Loop — you only need an
+        account to save items, list something, or message a seller.
       </p>
 
       <ButtonLink href="/login" variant="accent" size="lg" className="mt-8 w-full">

@@ -1,7 +1,7 @@
 import Link from "next/link";
+import type { InboxRowView } from "@/features/messaging";
 import { cn } from "@/shared/ui/cn";
 import { EmptyState } from "@/components/brand/empty-state";
-import type { ConversationRow } from "./inbox-data";
 import { RelativeTime } from "./relative-time";
 
 /**
@@ -11,14 +11,18 @@ import { RelativeTime } from "./relative-time";
 export function ConversationList({
   rows,
   activeId,
+  unreadTotal,
+  olderHref,
   className,
 }: {
-  rows: readonly ConversationRow[];
+  rows: readonly InboxRowView[];
   activeId?: string;
+  /** Across every thread, not just the loaded page — hence a prop, not a reduce. */
+  unreadTotal: number;
+  /** Set when there is another page behind this one; null when this is the whole inbox. */
+  olderHref?: string | null;
   className?: string;
 }) {
-  const unreadTotal = rows.reduce((total, row) => total + row.unreadCount, 0);
-
   return (
     <div
       className={cn("min-[800px]:border-border flex flex-col min-[800px]:border-r", className)}
@@ -42,7 +46,7 @@ export function ConversationList({
           />
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto">
+        <ul className="min-h-0 flex-1 overflow-y-auto">
           {rows.map((row) => (
             <li key={row.id}>
               <Link
@@ -65,18 +69,18 @@ export function ConversationList({
                     <strong className="truncate text-[12px] font-bold">{row.otherName}</strong>
                     <RelativeTime
                       value={row.lastMessageAt}
-                      className="numeral text-fg-muted ml-auto shrink-0 text-[9px]"
+                      className="numeral text-fg-muted ml-auto shrink-0 text-[11px]"
                     />
                   </span>
-                  <span className="text-teal mt-[3px] block truncate text-[9px]">
+                  <span className="text-teal mt-[3px] block truncate text-[11px]">
                     {row.listingTitle}
                   </span>
                   <span className="mt-[7px] flex items-center gap-2">
-                    <span className="text-fg-muted line-clamp-2 flex-1 text-[9px] leading-relaxed">
-                      {row.preview || "No messages yet."}
+                    <span className="text-fg-muted line-clamp-2 flex-1 text-[11px] leading-relaxed">
+                      {row.lastMessagePreview || "No messages yet."}
                     </span>
                     {row.unreadCount > 0 && (
-                      <span className="bg-accent flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1.5 font-mono text-[9px] font-bold text-white">
+                      <span className="bg-accent flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full px-1.5 font-mono text-[11px] font-bold text-white">
                         {row.unreadCount > 9 ? "9+" : row.unreadCount}
                         <span className="sr-only"> unread messages</span>
                       </span>
@@ -86,6 +90,17 @@ export function ConversationList({
               </Link>
             </li>
           ))}
+
+          {olderHref && (
+            <li className="p-4 text-center">
+              <Link
+                href={olderHref}
+                className="text-fg-muted hover:text-accent text-[10px] font-semibold"
+              >
+                Older conversations →
+              </Link>
+            </li>
+          )}
         </ul>
       )}
     </div>

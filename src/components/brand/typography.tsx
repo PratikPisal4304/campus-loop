@@ -2,19 +2,25 @@ import { cn } from "@/shared/ui/cn";
 
 /**
  * The uppercase mono kicker that sits above nearly every heading in the prototype.
- * Orange for calls to action, teal for section labels.
+ * Orange for calls to action, teal for section labels — both resolve to the text-safe
+ * ends of those ramps (`--color-accent-text`, `--color-teal`), since at 11px this is
+ * small text and owes 4.5:1 on every ground it lands on.
  */
 export function Eyebrow({
   tone = "teal",
   className,
   ...props
-}: React.ComponentProps<"p"> & { tone?: "teal" | "orange" | "muted" | "inverse" }) {
+}: React.ComponentProps<"p"> & {
+  /** `on-dark` is the accent again, brightened for the sidebar and banner grounds. */
+  tone?: "teal" | "orange" | "muted" | "inverse" | "on-dark";
+}) {
   return (
     <p
       className={cn(
         "eyebrow",
         tone === "teal" && "text-teal",
         tone === "orange" && "text-accent",
+        tone === "on-dark" && "text-accent-on-dark",
         tone === "muted" && "text-fg-muted",
         tone === "inverse" && "text-sidebar-muted",
         className,

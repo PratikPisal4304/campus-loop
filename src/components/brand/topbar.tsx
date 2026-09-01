@@ -19,19 +19,25 @@ export function Topbar({
 }) {
   return (
     <header className="border-border bg-cream/95 px-page sticky top-0 z-50 flex h-[74px] items-center justify-between border-b backdrop-blur">
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden="true"
-          className="bg-green h-1.5 w-1.5 rounded-full"
-          style={{ animation: "pulse-dot 2s infinite" }}
-        />
-        <span className="eyebrow text-fg-muted">Online campus</span>
-        <span aria-hidden="true" className="text-fg-muted/50">
-          /
-        </span>
-        <span className="text-fg-muted hidden text-[11px] sm:inline">
-          Student exchange season
-        </span>
+      {/*
+        Below `lg` the sidebar is gone, so the topbar is the only place the app can say
+        its own name. Above it the sidebar carries the wordmark and this side stays empty
+        rather than repeating it — the wrapper is what keeps `justify-between` honest.
+
+        What used to live here was a pulsing green dot labelled "Online campus", which
+        nothing ever measured, next to a strapline that collapsed on phones and left the
+        separator behind. Neither said anything true, so both are gone.
+      */}
+      <div className="flex items-center">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 text-[16px] font-extrabold lg:hidden"
+        >
+          <span className="bg-accent flex h-8 w-8 items-center justify-center rounded-full font-mono text-[12px] font-bold text-white">
+            CL
+          </span>
+          Campus Loop
+        </Link>
       </div>
 
       {user ? (

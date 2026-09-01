@@ -63,8 +63,10 @@ test.describe("Campus Loop", () => {
     await test.step("sees it in My Loop with the stats updated", async () => {
       await page.goto("/loop");
       await expect(page.getByRole("heading", { name: ITEM_TITLE })).toBeVisible();
-      // The prototype's stat tiles were hard-coded zeros; these are computed.
-      await expect(page.getByText("Items listed")).toBeVisible();
+      // The prototype's stat tiles were hard-coded zeros; these are computed, and now
+      // break down by status rather than showing a total beside two of its own parts.
+      await expect(page.getByText("Live", { exact: true })).toBeVisible();
+      await expect(page.getByText("Sold", { exact: true }).first()).toBeVisible();
     });
 
     await test.step("saves someone else's listing", async () => {

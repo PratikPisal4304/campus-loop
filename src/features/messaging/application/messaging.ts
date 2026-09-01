@@ -1,6 +1,6 @@
 import { fail, ok, type Result } from "@/core/domain/result";
 import type { UnitOfWork } from "@/core/domain/unit-of-work";
-import type { EntityId } from "@/core/types/branded";
+import { toEntityId, type EntityId } from "@/core/types/branded";
 import {
   canMessage,
   isParticipant,
@@ -11,13 +11,20 @@ import {
   type Conversation,
   type Message,
 } from "../domain/conversation";
-import type { ConversationRepository, ListingLookup, MessageRepository } from "../domain/ports";
+import type {
+  ConversationRepository,
+  InboxDirectory,
+  ListingLookup,
+  MessageRepository,
+} from "../domain/ports";
 
 export interface MessagingDeps {
   readonly conversations: ConversationRepository;
   readonly messages: MessageRepository;
   /** Used to establish who a listing's seller actually is — see `startConversation`. */
   readonly listings: ListingLookup;
+  /** Resolves participant and listing ids to the labels the inbox renders. */
+  readonly directory: InboxDirectory;
   /**
    * Runs `work` atomically. Typed as a plain function rather than imported from
    * `@/shared/db/transaction` so the use cases never see Mongo: the barrel injects the
@@ -47,8 +54,29 @@ export interface MessageView {
   readonly createdAt: Date;
 }
 
+/**
+ * An inbox row with its ids already resolved to the words a person recognises.
+ *
+ * Resolution happens here rather than in the route so it can be batched across the whole
+ * page — the route used to fetch a profile and a listing per row.
+ */
+export interface InboxRowView extends ConversationSummaryView {
+  readonly otherName: string;
+  readonly initials: string;
+  readonly listingTitle: string;
+  /** Null when the listing is gone, which is also the signal not to link the title. */
+  readonly listingSlug: string | null;
+}
+
+export interface InboxPage {
+  readonly rows: readonly InboxRowView[];
+  readonly hasMore: boolean;
+  /** Feed back as `before` to load the next page; null when there is nothing after. */
+  readonly nextCursor: Date | null;
+}
+
 export interface OpenConversationView {
-  readonly conversation: ConversationSummaryView;
+  readonly conversation: InboxRowView;
   readonly messages: readonly MessageView[];
 }
 
@@ -170,26 +198,88 @@ export async function sendMessage(
   return ok(toMessageView(message, input.senderId));
 }
 
+/** How many threads one inbox request loads. */
+export const INBOX_PAGE_SIZE = 20;
+
+const unique = (values: readonly (string | null)[]): EntityId[] =>
+  [...new Set(values.filter((value): value is string => Boolean(value)))].map(toEntityId);
+
+/** Resolve a batch of summaries into rows, in exactly two directory round trips. */
+async function resolveRows(
+  deps: MessagingDeps,
+  summaries: readonly ConversationSummaryView[],
+): Promise<InboxRowView[]> {
+  if (summaries.length === 0) return [];
+
+  const [participants, listings] = await Promise.all([
+    deps.directory.participantsByIds(
+      unique(summaries.map((summary) => summary.otherParticipantId)),
+    ),
+    deps.directory.listingsByIds(unique(summaries.map((summary) => summary.listingId))),
+  ]);
+
+  const participantById = new Map(participants.map((entry) => [entry.id, entry]));
+  const listingById = new Map(listings.map((entry) => [entry.id, entry]));
+
+  return summaries.map((summary) => {
+    const participant = summary.otherParticipantId
+      ? participantById.get(summary.otherParticipantId)
+      : undefined;
+    const listing = listingById.get(summary.listingId);
+
+    return {
+      ...summary,
+      // A deleted account or listing still has to render something addressable.
+      otherName: participant?.name ?? "Former student",
+      initials: participant?.initials ?? "??",
+      listingTitle: listing?.title ?? "Listing removed",
+      listingSlug: listing?.slug ?? null,
+    };
+  });
+}
+
+export interface ListInboxOptions {
+  readonly limit?: number;
+  /** Keyset cursor from a previous page's `nextCursor`. */
+  readonly before?: Date;
+}
+
 export async function listInbox(
   deps: MessagingDeps,
   userId: EntityId,
-): Promise<readonly ConversationSummaryView[]> {
-  const conversations = await deps.conversations.listForUser(userId);
-  return conversations.map((conversation) => toSummaryView(conversation, userId));
+  options: ListInboxOptions = {},
+): Promise<InboxPage> {
+  const limit = options.limit ?? INBOX_PAGE_SIZE;
+  // One extra row is the cheapest possible "is there more?" — no second count query, and
+  // it is discarded before anything downstream sees it.
+  const conversations = await deps.conversations.listForUser(userId, {
+    limit: limit + 1,
+    ...(options.before ? { before: options.before } : {}),
+  });
+
+  const hasMore = conversations.length > limit;
+  const page = hasMore ? conversations.slice(0, limit) : conversations;
+  const rows = await resolveRows(
+    deps,
+    page.map((conversation) => toSummaryView(conversation, userId)),
+  );
+
+  return {
+    rows,
+    hasMore,
+    nextCursor: hasMore ? (page[page.length - 1]?.lastMessageAt ?? null) : null,
+  };
 }
 
 /**
  * Total unread messages across every thread, for the sidebar badge.
  *
- * Derived from the same per-conversation counters the inbox renders, so the badge can
- * never disagree with the list it points at.
+ * One aggregate over the viewer's participant rows. It used to sum the counters of every
+ * conversation the repository could load, which meant the shared layout paid a full inbox
+ * scan on every page in the app — a second one, on top of the inbox's own.
  */
 export async function countUnread(deps: MessagingDeps, userId: EntityId): Promise<number> {
-  const conversations = await deps.conversations.listForUser(userId);
-  return conversations.reduce(
-    (total, conversation) => total + (conversation.unread[userId] ?? 0),
-    0,
-  );
+  return deps.conversations.sumUnread(userId);
 }
 
 export interface OpenConversationInput {
@@ -215,9 +305,35 @@ export async function openConversation(
   await deps.conversations.clearUnread(conversation.id, input.userId);
   await deps.messages.markRead(conversation.id, input.userId);
 
+  // The view reflects the state *after* reading, so the badge does not flash on load.
+  const [row] = await resolveRows(deps, [
+    { ...toSummaryView(conversation, input.userId), unreadCount: 0 },
+  ]);
+  if (!row) return fail("NOT_FOUND", "That conversation no longer exists.");
+
   return ok({
-    // The view reflects the state *after* reading, so the badge does not flash on load.
-    conversation: { ...toSummaryView(conversation, input.userId), unreadCount: 0 },
+    conversation: row,
     messages: messages.map((message) => toMessageView(message, input.userId)),
   });
+}
+
+/**
+ * The thread's header, without the side effect of marking it read.
+ *
+ * `generateMetadata` needs the other student's name to title the page, and running the
+ * full `openConversation` for it would clear the unread badge twice per render.
+ */
+export async function getConversationHeader(
+  deps: MessagingDeps,
+  input: OpenConversationInput,
+): Promise<Result<InboxRowView>> {
+  const conversation = await deps.conversations.findById(input.conversationId);
+  if (!conversation) return fail("NOT_FOUND", "That conversation no longer exists.");
+  if (!isParticipant(conversation, input.userId)) {
+    return fail("FORBIDDEN", "You're not part of this conversation.");
+  }
+
+  const [row] = await resolveRows(deps, [toSummaryView(conversation, input.userId)]);
+  if (!row) return fail("NOT_FOUND", "That conversation no longer exists.");
+  return ok(row);
 }

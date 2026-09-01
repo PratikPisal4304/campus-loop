@@ -12,6 +12,12 @@ import type {
 
 export type SortOrder = "recent" | "price-asc" | "price-desc";
 
+/** How many listings a page of results holds when the caller does not ask for a size. */
+export const LISTING_PAGE_SIZE = 24;
+
+/** Ceiling on a caller-supplied `limit` — one page is a page, not the whole table. */
+export const LISTING_PAGE_SIZE_MAX = 60;
+
 export interface ListingQuery {
   readonly search?: string;
   readonly category?: Category;
@@ -20,7 +26,9 @@ export interface ListingQuery {
   readonly sellerId?: EntityId;
   readonly status?: ListingStatus;
   readonly sort?: SortOrder;
+  /** Page size, clamped to `LISTING_PAGE_SIZE_MAX`; defaults to `LISTING_PAGE_SIZE`. */
   readonly limit?: number;
+  /** Rows to skip. Negative or fractional values are treated as 0. */
   readonly skip?: number;
 }
 

@@ -61,6 +61,15 @@ export const updateListing = (
 export const closeListing = (actorId: EntityId, listingId: EntityId) =>
   manage.closeListing(deps, actorId, listingId);
 
+export const reserveListing = (actorId: EntityId, listingId: EntityId) =>
+  manage.reserveListing(deps, actorId, listingId);
+
+export const markSold = (actorId: EntityId, listingId: EntityId) =>
+  manage.markSold(deps, actorId, listingId);
+
+export const reopenListing = (actorId: EntityId, listingId: EntityId) =>
+  manage.reopenListing(deps, actorId, listingId);
+
 export const deleteListing = (actorId: EntityId, listingId: EntityId) =>
   manage.deleteListing(deps, actorId, listingId);
 
@@ -79,17 +88,22 @@ export {
   CATEGORY_LABELS,
   CONDITIONS,
   CONDITION_LABELS,
+  LISTING_STATUSES,
+  LISTING_STATUS_LABELS,
   MODES,
   MODE_LABELS,
   RENT_UNITS,
+  acceptsEnquiries,
   isCategory,
   isCondition,
+  isListingStatus,
   isMode,
   MAX_PRICE_PAISE,
   MAX_PRICE_RUPEES,
   priceRuleFor,
   type Category,
   type Condition,
+  type ListingStatus,
   type Mode,
   type RentUnit,
   type Swatch,

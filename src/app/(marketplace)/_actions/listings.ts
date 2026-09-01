@@ -3,19 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { isEntityId, toEntityId } from "@/core/types/branded";
+import { isEntityId, toEntityId, type EntityId } from "@/core/types/branded";
 import { requireUserOrRedirect } from "@/features/accounts";
 import { isAllowedImageUrl } from "@/shared/media/image-source";
 import {
   CATEGORIES,
   CONDITIONS,
+  LISTING_STATUSES,
   MAX_PRICE_RUPEES,
   MODES,
   RENT_UNITS,
   closeListing,
   createListing,
   deleteListing,
+  markSold,
   priceRuleFor,
+  reopenListing,
+  reserveListing,
   toggleSaved,
   updateListing,
 } from "@/features/listings";
@@ -197,7 +201,9 @@ export async function createListingAction(
 
   revalidatePath("/");
   revalidatePath("/loop");
-  redirect(`/listings/${result.value.slug}`);
+  // `done` is read by the client toast on the destination — a server action cannot raise
+  // one itself, and this action never returns to the caller.
+  redirect(`/listings/${result.value.slug}?done=published`);
 }
 
 export async function updateListingAction(
@@ -238,17 +244,53 @@ export async function updateListingAction(
   revalidatePath("/");
   revalidatePath("/loop");
   revalidatePath(`/listings/${result.value.slug}`);
-  redirect(`/listings/${result.value.slug}`);
+  redirect(`/listings/${result.value.slug}?done=updated`);
 }
 
-export async function closeListingAction(formData: FormData): Promise<void> {
-  const user = await requireUserOrRedirect();
-  const listingId = parseId(formData, "listingId");
-  if (!listingId) return;
+const statusSchema = z.enum(LISTING_STATUSES);
 
-  await closeListing(user.id, toEntityId(listingId));
+/**
+ * Every deal-lifecycle move — reserve, sold, close, reopen — in one action.
+ *
+ * Returns `null` on success or the message to show the student, because the caller is a
+ * client component: it raises the toast, which a server action cannot do.
+ */
+export async function setListingStatusAction(
+  listingId: string,
+  status: string,
+): Promise<string | null> {
+  const user = await requireUserOrRedirect();
+  if (!isEntityId(listingId)) return "That listing no longer exists.";
+
+  const parsedStatus = statusSchema.safeParse(status);
+  if (!parsedStatus.success) return "That isn't something a listing can be.";
+
+  const id = toEntityId(listingId);
+  const result = await runStatusChange(user.id, id, parsedStatus.data);
+  if (!result.ok) return result.error.message;
+
   revalidatePath("/");
   revalidatePath("/loop");
+  revalidatePath("/saved");
+  revalidatePath(`/listings/${result.value.slug}`);
+  return null;
+}
+
+async function runStatusChange(
+  actorId: EntityId,
+  listingId: EntityId,
+  status: z.infer<typeof statusSchema>,
+) {
+  switch (status) {
+    case "reserved":
+      return reserveListing(actorId, listingId);
+    case "sold":
+      return markSold(actorId, listingId);
+    case "closed":
+      return closeListing(actorId, listingId);
+    case "active":
+      return reopenListing(actorId, listingId);
+  }
 }
 
 export async function deleteListingAction(formData: FormData): Promise<void> {
@@ -260,7 +302,7 @@ export async function deleteListingAction(formData: FormData): Promise<void> {
   revalidatePath("/");
   revalidatePath("/loop");
   revalidatePath("/saved");
-  redirect("/loop");
+  redirect("/loop?done=deleted");
 }
 
 /** Returns the new saved state so the button can re-render without a round trip. */

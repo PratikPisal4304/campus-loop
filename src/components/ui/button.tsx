@@ -13,7 +13,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         accent:
-          "bg-accent text-white hover:bg-accent-hover hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgb(243_107_56/0.28)]",
+          "bg-accent text-white hover:bg-accent-hover hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgb(168_58_12/0.28)]",
         primary:
           "bg-dark text-white hover:bg-ink hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgb(0_0_0/0.15)]",
         outline:

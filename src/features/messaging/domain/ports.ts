@@ -21,6 +21,12 @@ export interface CreateMessageInput {
   readonly body: string;
 }
 
+export interface ListConversationsOptions {
+  readonly limit?: number;
+  /** Keyset cursor: only conversations whose last activity is strictly older. */
+  readonly before?: Date;
+}
+
 export interface ListMessagesOptions {
   readonly limit?: number;
   /** Keyset cursor: only messages created strictly before this instant. */
@@ -37,6 +43,32 @@ export interface ListingLookup {
   sellerIdFor(listingId: EntityId): Promise<EntityId | null>;
 }
 
+/** The other student in a thread, as the inbox needs to label them. */
+export interface ParticipantSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly initials: string;
+}
+
+/** The listing a thread is about, as the inbox needs to label it. */
+export interface ListingSummary {
+  readonly id: string;
+  readonly title: string;
+  readonly slug: string;
+}
+
+/**
+ * Bulk label lookup for the inbox.
+ *
+ * Deliberately batch-shaped: the single-id equivalents would be called once per row, and
+ * an inbox of twenty threads would spend forty round trips resolving names it could have
+ * fetched in two.
+ */
+export interface InboxDirectory {
+  participantsByIds(ids: readonly EntityId[]): Promise<readonly ParticipantSummary[]>;
+  listingsByIds(ids: readonly EntityId[]): Promise<readonly ListingSummary[]>;
+}
+
 export interface ConversationRepository {
   findById(id: EntityId): Promise<Conversation | null>;
   findByListingAndParticipants(
@@ -44,8 +76,19 @@ export interface ConversationRepository {
     participants: readonly [EntityId, EntityId],
   ): Promise<Conversation | null>;
   create(input: CreateConversationInput, uow?: UnitOfWork): Promise<Conversation>;
-  /** The inbox, newest activity first. */
-  listForUser(userId: EntityId): Promise<readonly Conversation[]>;
+  /** The inbox, newest activity first. Always bounded — see `ListConversationsOptions`. */
+  listForUser(
+    userId: EntityId,
+    options?: ListConversationsOptions,
+  ): Promise<readonly Conversation[]>;
+  /**
+   * Total unread across every thread, as one aggregate.
+   *
+   * Separate from `listForUser` because the badge is rendered on every page in the app:
+   * summing it from a full conversation scan made the sidebar the most expensive query
+   * in the request.
+   */
+  sumUnread(userId: EntityId): Promise<number>;
   touch(
     conversationId: EntityId,
     input: TouchConversationInput,

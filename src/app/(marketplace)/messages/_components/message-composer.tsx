@@ -13,9 +13,11 @@ import { IDLE_MESSAGE_STATE, type MessageActionState } from "../../_actions/form
 export function MessageComposer({
   conversationId,
   maxLength,
+  className,
 }: {
   conversationId: string;
   maxLength: number;
+  className?: string;
 }) {
   const [body, setBody] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
@@ -46,7 +48,7 @@ export function MessageComposer({
     <form
       ref={formRef}
       action={formAction}
-      className="border-border mt-auto border-t p-[15px]"
+      className={cn("border-border mt-auto border-t p-[15px]", className)}
       onSubmit={() => textareaRef.current?.focus()}
     >
       <input type="hidden" name="conversationId" value={conversationId} />

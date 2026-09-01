@@ -468,6 +468,246 @@ const LISTINGS: SeedListing[] = [
   },
 ];
 
+/**
+ * A rating one seeded student left another after a deal.
+ *
+ * Every one of these is backed by a conversation created alongside it, because the app
+ * only lets a conversation counterparty rate — seeding a review without one would create
+ * data the product itself would refuse to produce.
+ */
+interface SeedReview {
+  rater: string;
+  subject: string;
+  /** Listing title — the deal being rated. One review per rater per listing. */
+  listing: string;
+  stars: number;
+  comment?: string;
+}
+
+const REVIEWS: readonly SeedReview[] = [
+  {
+    rater: "alex@campus.edu",
+    subject: "priya@campus.edu",
+    listing: "Arduino Uno R3 starter kit",
+    stars: 5,
+    comment: "Everything was in the box and she'd tested the board that morning.",
+  },
+  {
+    rater: "priya@campus.edu",
+    subject: "alex@campus.edu",
+    listing: "Arduino Uno R3 starter kit",
+    stars: 5,
+    comment: "Turned up on time with the exact change. Easy.",
+  },
+  {
+    rater: "sam@campus.edu",
+    subject: "priya@campus.edu",
+    listing: "Digital oscilloscope, 2 channel",
+    stars: 4,
+    comment: "Both probes included as promised. Deposit came straight back.",
+  },
+  {
+    rater: "mei@campus.edu",
+    subject: "alex@campus.edu",
+    listing: "TI-84 Plus CE graphing calculator",
+    stars: 5,
+    comment: "Screen was spotless, and he threw in the cable.",
+  },
+  {
+    rater: "diego@campus.edu",
+    subject: "alex@campus.edu",
+    listing: "Vernier caliper, stainless 150mm",
+    stars: 4,
+  },
+  {
+    rater: "fatima@campus.edu",
+    subject: "sam@campus.edu",
+    listing: "Rotring drafting set, 9 pieces",
+    stars: 5,
+    comment: "Complete set, better condition than the photos suggested.",
+  },
+  {
+    rater: "tom@campus.edu",
+    subject: "sam@campus.edu",
+    listing: "Ching — Architecture: Form, Space, and Order",
+    stars: 4,
+    comment: "A few pencil marks, exactly as described. Fair price.",
+  },
+  {
+    rater: "anika@campus.edu",
+    subject: "mei@campus.edu",
+    listing: "Lab coat, size M",
+    stars: 5,
+  },
+  {
+    rater: "shraddha@gmail.com",
+    subject: "mei@campus.edu",
+    listing: "Borosilicate glassware set",
+    stars: 5,
+    comment: "Checked every piece with me before I paid.",
+  },
+  {
+    rater: "mei@campus.edu",
+    subject: "shraddha@gmail.com",
+    listing: "Borosilicate glassware set",
+    stars: 4,
+    comment: "Straightforward buyer, met me at the Science Block on time.",
+  },
+  {
+    rater: "shraddha@gmail.com",
+    subject: "fatima@campus.edu",
+    listing: "Copic marker set, 36 colours",
+    stars: 4,
+    comment: "All caps on and still juicy, as she said.",
+  },
+  {
+    // The other half of the Copic deal. `trustScoreFor` only shows a number from two
+    // ratings up, so without this Shraddha — a named demo login — reads as "New" with a
+    // review printed on her profile, which is exactly the unbacked number this track
+    // removed everywhere else.
+    rater: "fatima@campus.edu",
+    subject: "shraddha@gmail.com",
+    listing: "Copic marker set, 36 colours",
+    stars: 5,
+    comment: "Paid up front and collected the same evening.",
+  },
+  {
+    rater: "mei@campus.edu",
+    subject: "fatima@campus.edu",
+    listing: "Wacom Intuos drawing tablet",
+    stars: 5,
+  },
+  {
+    rater: "srushti@gmail.com",
+    subject: "tom@campus.edu",
+    listing: "Cormen — Introduction to Algorithms",
+    stars: 5,
+    comment: "Heavy, intact, and he carried it down to the canteen for me.",
+  },
+  {
+    rater: "tom@campus.edu",
+    subject: "srushti@gmail.com",
+    listing: "Cormen — Introduction to Algorithms",
+    stars: 5,
+    comment: "Said 4pm and was there at 4pm.",
+  },
+  {
+    rater: "diego@campus.edu",
+    subject: "tom@campus.edu",
+    listing: "Mechanical keyboard, brown switches",
+    stars: 4,
+  },
+  {
+    rater: "srushti@gmail.com",
+    subject: "anika@campus.edu",
+    listing: "Casio FX-991ES Plus",
+    stars: 4,
+    comment: "Works fine, cover is a bit scratched but she said so.",
+  },
+  {
+    rater: "anika@campus.edu",
+    subject: "srushti@gmail.com",
+    listing: "Casio FX-991ES Plus",
+    stars: 5,
+  },
+  {
+    rater: "alex@campus.edu",
+    subject: "anika@campus.edu",
+    listing: "Statistics for Engineers, 6th ed.",
+    stars: 5,
+  },
+  {
+    rater: "alex@campus.edu",
+    subject: "diego@campus.edu",
+    listing: "Casio FX-991EX scientific calculator",
+    stars: 4,
+  },
+  {
+    rater: "sam@campus.edu",
+    subject: "diego@campus.edu",
+    listing: "Surveying tripod and staff",
+    stars: 5,
+    comment: "Rented it for the field week, no fuss either end.",
+  },
+];
+
+/**
+ * Seed the ratings, then derive every student's totals from them.
+ *
+ * Idempotent: conversations are upserted by their pair key and reviews by
+ * `[raterId, listingId]`, and the totals are a full recount rather than an increment, so
+ * running this twice leaves the same numbers.
+ */
+async function seedReviews(userIds: Map<string, string>): Promise<number> {
+  let seeded = 0;
+
+  for (const review of REVIEWS) {
+    const raterId = userIds.get(review.rater);
+    const subjectId = userIds.get(review.subject);
+    const listing = await prisma.listing.findUnique({
+      where: { slug: toSlug(review.listing) },
+      select: { id: true },
+    });
+    if (!raterId || !subjectId || !listing) continue;
+
+    const pairKey = conversationKey(toEntityId(listing.id), [
+      toEntityId(raterId),
+      toEntityId(subjectId),
+    ]);
+    await prisma.conversation.upsert({
+      where: { pairKey },
+      update: {},
+      create: {
+        pairKey,
+        listingId: listing.id,
+        // No fabricated preview: this thread has no messages, and the inbox falls back to
+        // "No messages yet." on an empty one. Inventing a last line here would put the
+        // same unbacked number-shaped claim back into the demo that the derived rating
+        // totals below exist to remove — the inbox would quote a message the thread does
+        // not contain.
+        participants: {
+          create: [
+            { userId: raterId, unreadCount: 0 },
+            { userId: subjectId, unreadCount: 0 },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+
+    await prisma.review.upsert({
+      where: { raterId_listingId: { raterId, listingId: listing.id } },
+      update: { stars: review.stars, comment: review.comment ?? null, subjectId },
+      create: {
+        stars: review.stars,
+        comment: review.comment ?? null,
+        raterId,
+        subjectId,
+        listingId: listing.id,
+      },
+      select: { id: true },
+    });
+    seeded += 1;
+  }
+
+  // Zero first, then apply what the reviews actually add up to: a student whose only
+  // review was removed has to fall back to "New", not keep a number nothing supports.
+  await prisma.user.updateMany({ data: { ratingSum: 0, ratingCount: 0 } });
+  const totals = await prisma.review.groupBy({
+    by: ["subjectId"],
+    _sum: { stars: true },
+    _count: { _all: true },
+  });
+  for (const total of totals) {
+    await prisma.user.update({
+      where: { id: total.subjectId },
+      data: { ratingSum: total._sum.stars ?? 0, ratingCount: total._count._all },
+    });
+  }
+
+  return seeded;
+}
+
 async function seed(): Promise<void> {
   // bcrypt at cost 12 takes ~250ms, so hash each distinct password once rather than once
   // per student — most of them share the demo password.
@@ -492,7 +732,9 @@ async function seed(): Promise<void> {
         campusArea: student.area,
         role: "student",
       },
-      // Ratings are only set on insert — re-running should not keep inflating them.
+      // No ratings here: `ratingSum`/`ratingCount` are derived from the Review rows below,
+      // the same way the app derives them. Inventing them made the demo show trust scores
+      // no review could account for — a system that looked like it worked and did not.
       create: {
         name: student.name,
         email: student.email,
@@ -500,8 +742,6 @@ async function seed(): Promise<void> {
         bio: student.bio,
         campusArea: student.area,
         role: "student",
-        ratingSum: Math.floor(Math.random() * 8) + 12,
-        ratingCount: Math.floor(Math.random() * 2) + 3,
       },
       select: { id: true },
     });
@@ -609,6 +849,9 @@ async function seed(): Promise<void> {
     }
     process.stdout.write("Seeded saved items and one conversation\n");
   }
+
+  const reviewCount = await seedReviews(userIds);
+  process.stdout.write(`Seeded ${reviewCount} reviews (trust scores derived from them)\n`);
 
   process.stdout.write("\nDemo accounts\n");
   for (const student of STUDENTS) {

@@ -2,12 +2,15 @@ import { fail, ok, type Result } from "@/core/domain/result";
 import { toSlug, type EntityId, type Slug } from "@/core/types/branded";
 import {
   canManage,
+  canTransitionTo,
+  LISTING_STATUS_LABELS,
   normalisePrice,
   swatchForKey,
   validatePrice,
   type Category,
   type Condition,
   type ListingImage,
+  type ListingStatus,
   type Mode,
   type RentUnit,
 } from "../domain/listing";
@@ -124,20 +127,94 @@ export async function updateListing(
   return ok(toDetailView(updated));
 }
 
-export async function closeListing(
+/**
+ * The one door every status change goes through, so ownership and the transition rule are
+ * checked in exactly one place rather than once per verb.
+ */
+async function changeStatus(
+  deps: ListingDeps,
+  actorId: EntityId,
+  listingId: EntityId,
+  next: ListingStatus,
+  refusal: string,
+): Promise<Result<ListingDetailView>> {
+  const existing = await deps.listings.findById(listingId);
+  if (!existing) return fail("NOT_FOUND", "That listing no longer exists.");
+  if (!canManage(existing, actorId)) return fail("FORBIDDEN", refusal);
+
+  // Already there: the caller got the state they asked for, so this is not a failure.
+  if (existing.status === next) return ok(toDetailView(existing));
+
+  if (!canTransitionTo(existing.status, next)) {
+    const from = LISTING_STATUS_LABELS[existing.status].toLowerCase();
+    const to = LISTING_STATUS_LABELS[next].toLowerCase();
+    return fail(
+      "INVALID_TRANSITION",
+      `A ${from} listing can't be marked ${to}. Reopen it first.`,
+    );
+  }
+
+  const updated = await deps.listings.setStatus(listingId, next);
+  if (!updated) return fail("NOT_FOUND", "That listing no longer exists.");
+  return ok(toDetailView(updated));
+}
+
+export function closeListing(
   deps: ListingDeps,
   actorId: EntityId,
   listingId: EntityId,
 ): Promise<Result<ListingDetailView>> {
-  const existing = await deps.listings.findById(listingId);
-  if (!existing) return fail("NOT_FOUND", "That listing no longer exists.");
-  if (!canManage(existing, actorId)) {
-    return fail("FORBIDDEN", "You can only close your own listings.");
-  }
+  return changeStatus(
+    deps,
+    actorId,
+    listingId,
+    "closed",
+    "You can only close your own listings.",
+  );
+}
 
-  const updated = await deps.listings.setStatus(listingId, "closed");
-  if (!updated) return fail("NOT_FOUND", "That listing no longer exists.");
-  return ok(toDetailView(updated));
+/** Holds the item for the student the seller is talking to, without ending the deal. */
+export function reserveListing(
+  deps: ListingDeps,
+  actorId: EntityId,
+  listingId: EntityId,
+): Promise<Result<ListingDetailView>> {
+  return changeStatus(
+    deps,
+    actorId,
+    listingId,
+    "reserved",
+    "You can only reserve your own listings.",
+  );
+}
+
+export function markSold(
+  deps: ListingDeps,
+  actorId: EntityId,
+  listingId: EntityId,
+): Promise<Result<ListingDetailView>> {
+  return changeStatus(
+    deps,
+    actorId,
+    listingId,
+    "sold",
+    "You can only mark your own listings as sold.",
+  );
+}
+
+/** Puts a sold or closed listing back on the market, keeping its URL and its saves. */
+export function reopenListing(
+  deps: ListingDeps,
+  actorId: EntityId,
+  listingId: EntityId,
+): Promise<Result<ListingDetailView>> {
+  return changeStatus(
+    deps,
+    actorId,
+    listingId,
+    "active",
+    "You can only reopen your own listings.",
+  );
 }
 
 export async function deleteListing(

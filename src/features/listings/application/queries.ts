@@ -1,5 +1,6 @@
 import type { EntityId, Slug } from "@/core/types/branded";
 import type { Listing } from "../domain/listing";
+import { LISTING_PAGE_SIZE, LISTING_PAGE_SIZE_MAX } from "../domain/ports";
 import type { ListingQuery, SellerStats } from "../domain/ports";
 import {
   toCardView,
@@ -11,7 +12,23 @@ import type { ListingDeps } from "./manage-listings";
 
 export interface ListingResults {
   readonly items: readonly ListingCardView[];
+  /** Matches across every page, not just the ones returned here. */
   readonly total: number;
+  /** 1-based page actually served — not always the one asked for, see `searchListings`. */
+  readonly page: number;
+  /** At least 1, so "Page 1 of 1" reads correctly on an empty result. */
+  readonly pageCount: number;
+  readonly pageSize: number;
+}
+
+function clampPageSize(limit: number | undefined): number {
+  if (limit === undefined || !Number.isFinite(limit)) return LISTING_PAGE_SIZE;
+  return Math.min(Math.max(1, Math.trunc(limit)), LISTING_PAGE_SIZE_MAX);
+}
+
+function clampSkip(skip: number | undefined): number {
+  if (skip === undefined || !Number.isFinite(skip)) return 0;
+  return Math.max(0, Math.trunc(skip));
 }
 
 /**
@@ -41,8 +58,28 @@ export async function searchListings(
   query: ListingQuery,
   viewerId: EntityId | null,
 ): Promise<ListingResults> {
-  const page = await deps.listings.search(query);
-  return { items: await withSavedState(deps, page.items, viewerId), total: page.total };
+  const pageSize = clampPageSize(query.limit);
+  let skip = clampSkip(query.skip);
+
+  let found = await deps.listings.search({ ...query, limit: pageSize, skip });
+  const pageCount = Math.max(1, Math.ceil(found.total / pageSize));
+
+  // A link past the last page — a stale bookmark, or listings closed since it was shared —
+  // should land on the last page that exists. Otherwise the grid is empty while the count
+  // beside it insists there are 32 items, which is the bug this whole change is about.
+  if (found.items.length === 0 && found.total > 0) {
+    skip = (pageCount - 1) * pageSize;
+    found = await deps.listings.search({ ...query, limit: pageSize, skip });
+  }
+
+  return {
+    items: await withSavedState(deps, found.items, viewerId),
+    total: found.total,
+    // Never past `pageCount`: an empty corpus asked for at `?page=11` still served page 1.
+    page: Math.min(Math.floor(skip / pageSize) + 1, pageCount),
+    pageCount,
+    pageSize,
+  };
 }
 
 export async function getListingBySlug(

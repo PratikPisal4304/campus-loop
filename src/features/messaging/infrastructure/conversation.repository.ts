@@ -8,12 +8,16 @@ import { conversationKey, participantKey, type Conversation } from "../domain/co
 import type {
   ConversationRepository,
   CreateConversationInput,
+  ListConversationsOptions,
   TouchConversationInput,
 } from "../domain/ports";
 
 type RowWithParticipants = ConversationRow & { participants: ConversationParticipant[] };
 
 const withParticipants = { participants: true } as const;
+
+/** A hard ceiling even when no caller asks for one — the inbox is never "all of them". */
+const DEFAULT_INBOX_LIMIT = 20;
 
 export class PrismaConversationRepository implements ConversationRepository {
   async findById(id: EntityId): Promise<Conversation | null> {
@@ -55,13 +59,30 @@ export class PrismaConversationRepository implements ConversationRepository {
     return toDomain(row);
   }
 
-  async listForUser(userId: EntityId): Promise<readonly Conversation[]> {
+  async listForUser(
+    userId: EntityId,
+    options: ListConversationsOptions = {},
+  ): Promise<readonly Conversation[]> {
     const rows = await prisma.conversation.findMany({
-      where: { participants: { some: { userId } } },
+      where: {
+        participants: { some: { userId } },
+        ...(options.before ? { lastMessageAt: { lt: options.before } } : {}),
+      },
       orderBy: { lastMessageAt: "desc" },
+      take: options.limit ?? DEFAULT_INBOX_LIMIT,
       include: withParticipants,
     });
     return rows.map(toDomain);
+  }
+
+  async sumUnread(userId: EntityId): Promise<number> {
+    // One aggregate over this user's participant rows — the `@@index([userId])` covers it.
+    // Summing the inbox instead made every page in the app pay a full conversation scan.
+    const total = await prisma.conversationParticipant.aggregate({
+      where: { userId },
+      _sum: { unreadCount: true },
+    });
+    return total._sum.unreadCount ?? 0;
   }
 
   async touch(
@@ -86,7 +107,10 @@ export class PrismaConversationRepository implements ConversationRepository {
 
   async clearUnread(conversationId: EntityId, userId: EntityId): Promise<void> {
     await prisma.conversationParticipant.updateMany({
-      where: { conversationId, userId },
+      // `unreadCount: { not: 0 }` makes an already-read thread a no-op rather than a
+      // rewritten row: the thread route re-runs on every 12s poll, and Postgres writes a
+      // new tuple even when the value is unchanged. Mirrors `markRead`'s `readAt: null`.
+      where: { conversationId, userId, unreadCount: { not: 0 } },
       data: { unreadCount: 0 },
     });
   }

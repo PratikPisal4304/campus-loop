@@ -72,8 +72,51 @@ export const RENT_UNIT_SUFFIX: Record<RentUnit, string> = {
   month: "/month",
 };
 
-export const LISTING_STATUSES = ["active", "reserved", "closed"] as const;
+export const LISTING_STATUSES = ["active", "reserved", "sold", "closed"] as const;
 export type ListingStatus = (typeof LISTING_STATUSES)[number];
+
+export const LISTING_STATUS_LABELS: Record<ListingStatus, string> = {
+  active: "Live",
+  reserved: "Reserved",
+  sold: "Sold",
+  closed: "Closed",
+};
+
+/**
+ * The legal moves in a deal's life.
+ *
+ * A listing is live until the seller says otherwise; "reserved" holds it for the student
+ * they are talking to, "sold" records that the deal happened, and "closed" withdraws it.
+ * The two end states go back only through "active" (reopen) — so a listing that was closed
+ * by accident keeps its URL and everyone who saved it, instead of being deleted and
+ * re-created.
+ */
+const STATUS_TRANSITIONS: Record<ListingStatus, readonly ListingStatus[]> = {
+  active: ["reserved", "sold", "closed"],
+  reserved: ["active", "sold", "closed"],
+  sold: ["active"],
+  closed: ["active"],
+};
+
+/** Staying put is always allowed; the caller decides whether that is a no-op or an error. */
+export function canTransitionTo(from: ListingStatus, to: ListingStatus): boolean {
+  return from === to || STATUS_TRANSITIONS[from].includes(to);
+}
+
+/**
+ * Can a buyer still start a conversation about this?
+ *
+ * A reserved item can — the hold often falls through, and the seller wants the queue.
+ * A sold or closed one cannot: offering "Message seller" there is the app lying about
+ * what is available.
+ */
+export function acceptsEnquiries(status: ListingStatus): boolean {
+  return status === "active" || status === "reserved";
+}
+
+export function isListingStatus(value: string): value is ListingStatus {
+  return (LISTING_STATUSES as readonly string[]).includes(value);
+}
 
 /**
  * The eight card colours from the prototype's CSS. A listing with no photo still gets a
