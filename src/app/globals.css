@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Campus Loop design tokens.
+
+   The raw palette is lifted verbatim from the original prototype's `:root` in
+   style.css — that identity is the one thing worth keeping from the static site.
+   Everything below it (scale, radii, shadows, motion) is this app's own system.
+
+   Components reference the *semantic* aliases, never a raw hex.
+--------------------------------------------------------------------------- */
+@theme {
+  /* Raw palette — from the prototype */
+  --color-cream: #f5f1e8;
+  --color-paper: #fffdf8;
+  --color-ink: #171717;
+  --color-dark: #222222;
+  --color-muted: #77746d;
+  --color-line: #ddd8cd;
+  --color-orange: #f36b38;
+  --color-orange-hover: #d95829;
+  --color-yellow: #f4c84a;
+  --color-teal: #4d8f82;
+  --color-green: #8fae78;
+  --color-blue: #7797b9;
+  --color-purple: #8876a8;
+
+  /* Grounds that carry the editorial feel */
+  --color-sidebar: #1c1c1b;
+  --color-sidebar-hover: #292928;
+  --color-sidebar-active: #302f2d;
+  --color-sidebar-line: #393836;
+  --color-sidebar-muted: #a6a39b;
+  --color-hero: #e6e0d4;
+  --color-panel-sunk: #eee8dd;
+  --color-banner: #252524;
+  --color-pulse: #d8e0d2;
+  --color-checklist: #dce3d8;
+  --color-highlight: #f0d88c;
+  --color-avatar: #eadcc5;
+
+  /* Feedback */
+  --color-danger: #c0392b;
+  --color-success: #4d7c4f;
+
+  /* Semantic aliases — what components actually reference */
+  --color-bg: var(--color-cream);
+  --color-surface: var(--color-paper);
+  --color-fg: var(--color-ink);
+  --color-fg-muted: var(--color-muted);
+  --color-accent: var(--color-orange);
+  --color-accent-hover: var(--color-orange-hover);
+  --color-border: var(--color-line);
+
+  /* Listing-card swatches. A listing with no photo still gets a distinct block,
+     which is how the prototype made an image-less marketplace look intentional. */
+  --color-swatch-blue: #9cb4cc;
+  --color-swatch-green: #9db39b;
+  --color-swatch-orange: #d99a6e;
+  --color-swatch-purple: #9a8ab3;
+  --color-swatch-dark: #545e65;
+  --color-swatch-cream: #d9c9aa;
+  --color-swatch-red: #c77c68;
+  --color-swatch-teal: #73a7a0;
+
+  /* Mode badges */
+  --color-mode-rent: #3f776d;
+  --color-mode-sell: #b94e25;
+  --color-mode-free: #69834e;
+  --color-mode-exchange: #61749a;
+
+  /* Typography — two families, doing very different jobs */
+  --font-display: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), "Space Mono", ui-monospace, monospace;
+
+  /* Shape — the prototype's real radii */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 8px;
+  --radius-xl: 14px;
+
+  /* Elevation. The light theme is flat and border-driven; shadow appears on hover
+     and almost nowhere else, which is what keeps it feeling like paper. */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.03);
+  --shadow-card-hover: 0 12px 25px rgb(0 0 0 / 0.07);
+  --shadow-panel: 0 25px 70px rgb(0 0 0 / 0.12);
+
+  /* Motion */
+  --ease-brand: cubic-bezier(0.16, 0.84, 0.24, 1);
+
+  /* The prototype's 50px page gutter, made responsive */
+  --spacing-page: clamp(20px, 4vw, 50px);
+  --spacing-sidebar: 245px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-display);
+    min-height: 100vh;
+  }
+
+  /* The signature: display type is tightly tracked and set close. The prototype's
+     hero ran -5px at 92px, which is roughly -0.055em — expressed in em here so it
+     scales correctly with the clamp() instead of collapsing on small screens. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: white;
+  }
+}
+
+@layer components {
+  /* The small uppercase mono kicker used above nearly every section, on badges,
+     stat captions and prices. It appears often enough to earn a class. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* Prices and counts: mono, with figures that line up in a column. */
+  .numeral {
+    font-family: var(--font-mono);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(25px, -30px) scale(1.08);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
