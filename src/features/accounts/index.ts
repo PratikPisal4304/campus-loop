@@ -25,6 +25,11 @@ export const updateProfile = (id: EntityId, input: profile.UpdateProfileFormInpu
   profile.updateProfile(deps, id, input);
 
 export { handlers, signIn, signOut, auth } from "./infrastructure/auth";
-export { getSessionUser, requireUser, type SessionUser } from "./infrastructure/guards";
+export {
+  getSessionUser,
+  requireUser,
+  requireUserOrRedirect,
+  type SessionUser,
+} from "./infrastructure/guards";
 export { initialsFor, trustScoreFor, type Role, type TrustScore } from "./domain/user";
 export { toProfileView, type ProfileView } from "./application/profile";

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireUser, signOut, updateProfile } from "@/features/accounts";
+import { requireUserOrRedirect, signOut, updateProfile } from "@/features/accounts";
 import type { AccountActionState } from "./form-state";
 
 export async function signOutAction(): Promise<void> {
@@ -21,7 +21,7 @@ export async function updateProfileAction(
 ): Promise<AccountActionState> {
   // The proxy gates navigation, but it does not run for a direct action call — so the
   // guard is repeated here, at the only place that actually protects the write.
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
 
   const parsed = profileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) {

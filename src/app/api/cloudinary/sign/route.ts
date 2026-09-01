@@ -10,7 +10,12 @@ export const dynamic = "force-dynamic";
  * our storage quota as free hosting.
  */
 export async function POST() {
-  await requireUser();
+  try {
+    await requireUser();
+  } catch {
+    // A thrown UnauthenticatedError would otherwise escape as an opaque 500.
+    return NextResponse.json({ error: "Sign in to upload photos." }, { status: 401 });
+  }
 
   if (!hasCloudinary) {
     // Uploads are optional in development. The form falls back to the colour swatch.

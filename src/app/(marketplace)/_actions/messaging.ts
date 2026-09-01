@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { isEntityId, toEntityId } from "@/core/types/branded";
-import { requireUser } from "@/features/accounts";
+import { requireUserOrRedirect } from "@/features/accounts";
 import { MAX_MESSAGE_LENGTH, sendMessage, startConversation } from "@/features/messaging";
 import { IDLE_MESSAGE_STATE, type MessageActionState } from "./form-state";
 
@@ -23,7 +23,7 @@ export async function sendMessageAction(
 ): Promise<MessageActionState> {
   // The proxy gates navigation, not direct action invocations — so the guard lives here,
   // at the only place that actually protects the write.
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
 
   const parsed = sendSchema.safeParse({
     conversationId: formData.get("conversationId"),
@@ -58,7 +58,7 @@ const startSchema = z.object({
 });
 
 export async function startConversationAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
 
   const parsed = startSchema.safeParse({
     listingId: formData.get("listingId"),

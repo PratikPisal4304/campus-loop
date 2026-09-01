@@ -1,6 +1,9 @@
 import "server-only";
+import { redirect } from "next/navigation";
 import { UnauthenticatedError } from "@/core/domain/errors";
 import { toEmail, toEntityId, type EntityId } from "@/core/types/branded";
+import { publicEnv } from "@/shared/env.public";
+import { safeInternalPath } from "@/shared/safe-path";
 import type { Role } from "../domain/user";
 import { auth } from "./auth";
 
@@ -34,4 +37,19 @@ export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) throw new UnauthenticatedError();
   return user;
+}
+
+/**
+ * The same guard, but for anything a student triggers from the UI.
+ *
+ * A bare `requireUser()` throw becomes the generic "That didn't work" error screen, with
+ * the form contents gone and no hint that the session simply expired. Sending them to
+ * login with the destination attached means they carry on where they left off.
+ */
+export async function requireUserOrRedirect(returnTo?: string): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (user) return user;
+
+  const target = safeInternalPath(returnTo, publicEnv.siteUrl);
+  redirect(target === "/" ? "/login" : `/login?next=${encodeURIComponent(target)}`);
 }

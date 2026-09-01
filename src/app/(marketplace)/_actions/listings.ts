@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { isEntityId, toEntityId } from "@/core/types/branded";
-import { requireUser } from "@/features/accounts";
+import { requireUserOrRedirect } from "@/features/accounts";
 import { isAllowedImageUrl } from "@/shared/media/image-source";
 import {
   CATEGORIES,
@@ -168,7 +168,7 @@ export async function createListingAction(
   _previous: ListingActionState,
   formData: FormData,
 ): Promise<ListingActionState> {
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
 
   const parsed = parseListingForm(formData);
   if (!parsed.success) {
@@ -204,7 +204,7 @@ export async function updateListingAction(
   _previous: ListingActionState,
   formData: FormData,
 ): Promise<ListingActionState> {
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
   const listingId = parseId(formData, "listingId");
   if (!listingId) {
     return { status: "error", message: "That listing no longer exists." };
@@ -242,7 +242,7 @@ export async function updateListingAction(
 }
 
 export async function closeListingAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
   const listingId = parseId(formData, "listingId");
   if (!listingId) return;
 
@@ -252,7 +252,7 @@ export async function closeListingAction(formData: FormData): Promise<void> {
 }
 
 export async function deleteListingAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
   const listingId = parseId(formData, "listingId");
   if (!listingId) return;
 
@@ -265,7 +265,7 @@ export async function deleteListingAction(formData: FormData): Promise<void> {
 
 /** Returns the new saved state so the button can re-render without a round trip. */
 export async function toggleSavedAction(listingId: string): Promise<boolean> {
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
   if (!isEntityId(listingId)) {
     // Previously this reached Prisma and raised a foreign-key error the client silently
     // swallowed, so the heart just stopped working with no explanation.
