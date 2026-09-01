@@ -24,18 +24,21 @@ jobs:
     name: End-to-end
     runs-on: ubuntu-latest
     services:
-      mongo:
-        image: mongo:7
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: campus
+          POSTGRES_PASSWORD: campus
+          POSTGRES_DB: campus_loop
         ports:
-          - 27017:27017
+          - 5432:5432
         options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-cmd "pg_isready -U campus -d campus_loop"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
     env:
-      MONGODB_URI: mongodb://localhost:27017/?replicaSet=rs0&directConnection=true
-      MONGODB_DB_NAME: campus_loop_e2e
+      DATABASE_URL: postgresql://campus:campus@localhost:5432/campus_loop
       AUTH_SECRET: e2e-secret-not-used-anywhere-real
       AUTH_URL: http://localhost:3000
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
@@ -48,21 +51,9 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # The service container starts a standalone mongod, but transactions need a replica
-      # set, so promote it in place before anything connects.
-      - name: Promote MongoDB to a single-node replica set
-        run: |
-          docker exec "$(docker ps -q --filter ancestor=mongo:7)" mongosh --quiet --eval \
-            "rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]})"
-          for i in $(seq 1 30); do
-            ok=$(docker exec "$(docker ps -q --filter ancestor=mongo:7)" mongosh --quiet \
-              --eval "try { rs.status().myState === 1 } catch (e) { false }")
-            [ "$ok" = "true" ] && echo "replica set has a primary" && exit 0
-            sleep 2
-          done
-          echo "replica set never elected a primary" && exit 1
-
-      - run: npm run db:indexes
+      # `migrate deploy` applies committed migrations without generating new ones — the
+      # same command production runs.
+      - run: npx prisma migrate deploy
       - run: npm run db:seed
 
       - run: npx playwright install --with-deps chromium

@@ -6,7 +6,7 @@ import { env } from "@/shared/env";
 import { verifyCredentials } from "../application/register";
 import { authConfig } from "./auth.config";
 import { BcryptPasswordHasher } from "./bcrypt-hasher";
-import { MongoUserRepository } from "./user.repository";
+import { PrismaUserRepository } from "./user.repository";
 
 const credentialsSchema = z.object({
   email: z.email().max(120),
@@ -14,7 +14,7 @@ const credentialsSchema = z.object({
 });
 
 const deps = {
-  users: new MongoUserRepository(),
+  users: new PrismaUserRepository(),
   hasher: new BcryptPasswordHasher(),
 };
 

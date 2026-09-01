@@ -49,7 +49,7 @@ module.exports = {
     {
       name: "feature-domain-has-no-vendors",
       severity: "error",
-      comment: "A feature's domain/ layer must depend on ports, not on mongoose/next-auth/react.",
+      comment: "A feature's domain/ layer must depend on ports, not on prisma/next-auth/react.",
       from: { path: "^src/features/[^/]+/domain" },
       to: {
         dependencyTypes: ["npm"],
@@ -61,7 +61,7 @@ module.exports = {
       severity: "error",
       comment: "Vendor SDKs belong in infrastructure/ adapters, behind a port.",
       from: { path: "^src/features/[^/]+/application" },
-      to: { path: "node_modules/(mongoose|cloudinary|bcryptjs|next-auth)" },
+      to: { path: "node_modules/(@prisma|\\.prisma|cloudinary|bcryptjs|next-auth)" },
     },
     {
       name: "cross-feature-via-barrel-only",

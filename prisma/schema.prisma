@@ -1,0 +1,145 @@
+// Campus Loop schema.
+//
+// Category/condition/mode/status are stored as plain strings rather than Postgres enums.
+// The domain (`features/listings/domain/listing.ts`) is the single source of truth for
+// that vocabulary and already validates it on every write; duplicating the lists here
+// would mean a migration every time a category is added, and a second place to disagree.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: the connection URL lives in prisma.config.ts, not here.
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("student")
+  bio          String?
+  campusArea   String?
+  // Sum and count rather than a stored average: an average cannot be updated
+  // incrementally without drifting, and it loses the sample size trust depends on.
+  ratingSum    Int      @default(0)
+  ratingCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  listings      Listing[]
+  savedItems    SavedItem[]
+  participantIn ConversationParticipant[]
+  messagesSent  Message[]
+
+  @@map("users")
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  category    String
+  condition   String
+  mode        String
+  /// Integer paise. Free and exchange listings are normalised to 0 by the domain before
+  /// they reach here, so a price on those modes cannot be persisted.
+  pricePaise  Int      @default(0)
+  rentUnit    String?
+  pickupArea  String
+  /// Cloudinary references: [{ publicId, url, width, height }].
+  images      Json     @default("[]")
+  swatch      String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  savedBy       SavedItem[]
+  conversations Conversation[]
+
+  // The Discover page's filter combination, in the order the query narrows.
+  @@index([status, category, mode, createdAt])
+  // "My Loop" and the seller stats.
+  @@index([sellerId, status, createdAt])
+  @@map("listings")
+}
+
+model SavedItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  // One save per student per listing. Deleting a listing cascades, so nobody is left
+  // with a saved card pointing at something that no longer exists.
+  @@unique([userId, listingId])
+  @@index([userId, createdAt])
+  @@map("saved_items")
+}
+
+model Conversation {
+  id String @id @default(cuid())
+
+  /// Derived scalar "<listingId>:<sortedUserIdA>:<sortedUserIdB>".
+  ///
+  /// Uniqueness has to live on a single column. Enforcing it across the participant rows
+  /// instead would mean a unique constraint per participant, which is the same mistake the
+  /// Mongo version made: it read as "one thread per pair" but actually meant "one thread
+  /// per listing per person", so the second buyer to message a seller collided.
+  pairKey            String   @unique
+  lastMessageAt      DateTime @default(now())
+  lastMessagePreview String   @default("")
+  createdAt          DateTime @default(now())
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+/// A join row per person in a thread, replacing Mongo's participant array plus its
+/// unread-count Map. The unread counter lives with the participant it belongs to, so
+/// incrementing one side cannot touch the other.
+model ConversationParticipant {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  unreadCount Int @default(0)
+
+  @@id([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id        String    @id @default(cuid())
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}

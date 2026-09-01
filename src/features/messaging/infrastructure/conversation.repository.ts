@@ -1,75 +1,67 @@
 import "server-only";
-import { Types } from "mongoose";
+import type { Conversation as ConversationRow, ConversationParticipant } from "@prisma/client";
 import type { UnitOfWork } from "@/core/domain/unit-of-work";
 import { toEntityId, type EntityId } from "@/core/types/branded";
-import { connectToDatabase } from "@/shared/db/connection";
-import { sessionFrom } from "@/shared/db/transaction";
-import { conversationKey, type Conversation } from "../domain/conversation";
+import { prisma } from "@/shared/db/connection";
+import { clientFrom } from "@/shared/db/transaction";
+import { conversationKey, participantKey, type Conversation } from "../domain/conversation";
 import type {
   ConversationRepository,
   CreateConversationInput,
   TouchConversationInput,
 } from "../domain/ports";
-import { ConversationModel, type ConversationDocument } from "./conversation.schema";
 
-export class MongoConversationRepository implements ConversationRepository {
+type RowWithParticipants = ConversationRow & { participants: ConversationParticipant[] };
+
+const withParticipants = { participants: true } as const;
+
+export class PrismaConversationRepository implements ConversationRepository {
   async findById(id: EntityId): Promise<Conversation | null> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(id)) return null;
-    const doc = await ConversationModel.findById(new Types.ObjectId(id))
-      .lean<ConversationDocument>()
-      .exec();
-    return doc ? toDomain(doc) : null;
+    const row = await prisma.conversation.findUnique({
+      where: { id },
+      include: withParticipants,
+    });
+    return row ? toDomain(row) : null;
   }
 
   async findByListingAndParticipants(
     listingId: EntityId,
     participants: readonly [EntityId, EntityId],
   ): Promise<Conversation | null> {
-    await connectToDatabase();
-
-    // Looked up by the same derived scalar the unique index is built on, so the lookup
-    // and the constraint can never disagree about what identifies a thread.
-    const doc = await ConversationModel.findOne({
-      pairKey: conversationKey(listingId, participants),
-    })
-      .lean<ConversationDocument>()
-      .exec();
-    return doc ? toDomain(doc) : null;
+    // Looked up by the same derived scalar the unique constraint is built on, so the
+    // lookup and the constraint can never disagree about what identifies a thread.
+    const row = await prisma.conversation.findUnique({
+      where: { pairKey: conversationKey(listingId, participants) },
+      include: withParticipants,
+    });
+    return row ? toDomain(row) : null;
   }
 
   async create(input: CreateConversationInput, uow?: UnitOfWork): Promise<Conversation> {
-    await connectToDatabase();
-    const now = new Date();
-    const [created] = await ConversationModel.create(
-      [
-        {
-          listingId: new Types.ObjectId(input.listingId),
-          participantIds: input.participantIds.map((id) => new Types.ObjectId(id)),
-          pairKey: conversationKey(input.listingId, input.participantIds),
-          lastMessageAt: now,
-          lastMessagePreview: "",
-          unread: {},
+    const [first, second] = participantKey(input.participantIds[0], input.participantIds[1]);
+    const row = await clientFrom(uow).conversation.create({
+      data: {
+        listingId: input.listingId,
+        pairKey: conversationKey(input.listingId, input.participantIds),
+        participants: {
+          create: [
+            { userId: first, unreadCount: 0 },
+            { userId: second, unreadCount: 0 },
+          ],
         },
-      ],
-      // `create` only accepts a session when given an array of documents, which is why
-      // this passes a one-element array rather than the plain object form.
-      { session: sessionFrom(uow) },
-    );
-    if (!created) {
-      throw new Error("Conversation insert returned no document.");
-    }
-    return toDomain(created.toObject() as ConversationDocument);
+      },
+      include: withParticipants,
+    });
+    return toDomain(row);
   }
 
   async listForUser(userId: EntityId): Promise<readonly Conversation[]> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(userId)) return [];
-    const docs = await ConversationModel.find({ participantIds: new Types.ObjectId(userId) })
-      .sort({ lastMessageAt: -1 })
-      .lean<ConversationDocument[]>()
-      .exec();
-    return docs.map(toDomain);
+    const rows = await prisma.conversation.findMany({
+      where: { participants: { some: { userId } } },
+      orderBy: { lastMessageAt: "desc" },
+      include: withParticipants,
+    });
+    return rows.map(toDomain);
   }
 
   async touch(
@@ -77,55 +69,50 @@ export class MongoConversationRepository implements ConversationRepository {
     input: TouchConversationInput,
     uow?: UnitOfWork,
   ): Promise<void> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(conversationId)) return;
-    await ConversationModel.updateOne(
-      { _id: new Types.ObjectId(conversationId) },
-      {
-        $set: { lastMessagePreview: input.preview, lastMessageAt: input.at },
-        // `$inc` on the recipient's key only: the sender has, by definition, read it.
-        $inc: { [`unread.${input.incrementUnreadFor}`]: 1 },
+    const client = clientFrom(uow);
+    await client.conversation.update({
+      where: { id: conversationId },
+      data: { lastMessagePreview: input.preview, lastMessageAt: input.at },
+    });
+    // Scoped to the recipient's own participant row, so incrementing one side cannot
+    // touch the other's badge.
+    await client.conversationParticipant.update({
+      where: {
+        conversationId_userId: { conversationId, userId: input.incrementUnreadFor },
       },
-    )
-      .session(sessionFrom(uow) ?? null)
-      .exec();
+      data: { unreadCount: { increment: 1 } },
+    });
   }
 
   async clearUnread(conversationId: EntityId, userId: EntityId): Promise<void> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(conversationId)) return;
-    await ConversationModel.updateOne(
-      { _id: new Types.ObjectId(conversationId) },
-      { $set: { [`unread.${userId}`]: 0 } },
-    ).exec();
+    await prisma.conversationParticipant.updateMany({
+      where: { conversationId, userId },
+      data: { unreadCount: 0 },
+    });
   }
 }
 
 /**
- * Mongoose stores `unread` as a Map, but `.lean()` hands back a plain object while a
- * hydrated document hands back a real Map. Normalise both to the domain's Record.
+ * Row to domain entity. The join rows are folded back into the pair-and-unread-map shape
+ * the domain works in, so the storage layout stays an infrastructure detail.
  */
-function toUnread(value: ConversationDocument["unread"]): Record<string, number> {
-  if (value instanceof Map) return Object.fromEntries(value);
-  return value && typeof value === "object" ? { ...(value as Record<string, number>) } : {};
-}
+function toDomain(row: RowWithParticipants): Conversation {
+  const ids = row.participants.map((participant) => toEntityId(participant.userId));
+  const [first, second] = ids;
+  const unread: Record<string, number> = {};
+  for (const participant of row.participants) {
+    unread[participant.userId] = participant.unreadCount;
+  }
 
-/**
- * Mongoose document to domain entity. Repositories return entities, never documents —
- * a document carries a live connection, `save()`, and the whole ODM surface into layers
- * that are supposed to be persistence-agnostic.
- */
-function toDomain(doc: ConversationDocument): Conversation {
-  const [first, second] = doc.participantIds.map((id) => toEntityId(id.toString()));
   return {
-    id: toEntityId(doc._id.toString()),
-    listingId: toEntityId(doc.listingId.toString()),
-    // The schema validates the pair length; this fallback keeps the mapper total without
-    // a non-null assertion if a legacy row ever slipped through.
+    id: toEntityId(row.id),
+    listingId: toEntityId(row.listingId),
+    // A conversation always has exactly two participants (created together, cascade
+    // deleted together). The fallback keeps the tuple type honest without an assertion.
     participantIds: [first ?? toEntityId(""), second ?? toEntityId("")],
-    lastMessageAt: doc.lastMessageAt,
-    lastMessagePreview: doc.lastMessagePreview ?? "",
-    unread: toUnread(doc.unread),
-    createdAt: doc.createdAt,
+    lastMessageAt: row.lastMessageAt,
+    lastMessagePreview: row.lastMessagePreview,
+    unread,
+    createdAt: row.createdAt,
   };
 }

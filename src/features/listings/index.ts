@@ -3,18 +3,18 @@ import type { EntityId, Slug } from "@/core/types/branded";
 import * as queries from "./application/queries";
 import * as manage from "./application/manage-listings";
 import type { ListingQuery } from "./domain/ports";
-import { MongoListingRepository } from "./infrastructure/listing.repository";
-import { MongoSavedItemRepository } from "./infrastructure/saved-item.repository";
+import { PrismaListingRepository } from "./infrastructure/listing.repository";
+import { PrismaSavedItemRepository } from "./infrastructure/saved-item.repository";
 
 /**
  * Public API of the listings feature.
  *
- * Also the composition root: it binds the Mongo adapters to the use cases so callers
+ * Also the composition root: it binds the Prisma adapters to the use cases so callers
  * never see a repository. Nothing outside this folder may import a deeper path.
  */
 const deps: manage.ListingDeps = {
-  listings: new MongoListingRepository(),
-  saved: new MongoSavedItemRepository(),
+  listings: new PrismaListingRepository(),
+  saved: new PrismaSavedItemRepository(),
 };
 
 // --- Reads ------------------------------------------------------------------

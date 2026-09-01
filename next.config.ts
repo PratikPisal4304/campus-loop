@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
   },
   // These ship native or Node-only code and must not be bundled into the server build.
-  serverExternalPackages: ["mongoose", "pino", "bcryptjs"],
+  serverExternalPackages: ["@prisma/client", "pino", "bcryptjs"],
 };
 
 export default nextConfig;

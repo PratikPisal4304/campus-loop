@@ -7,9 +7,8 @@
  * Run with:  npm run db:seed
  * (the --conditions=react-server flag in that script is required, or `server-only` throws)
  */
-import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import { toSlug, type Slug } from "../src/core/types/branded";
+import { toEntityId, toSlug, type Slug } from "../src/core/types/branded";
 import {
   swatchForKey,
   type Category,
@@ -17,12 +16,8 @@ import {
   type Mode,
   type RentUnit,
 } from "../src/features/listings/domain/listing";
-import { connectToDatabase } from "../src/shared/db/connection";
-import { UserModel } from "../src/features/accounts/infrastructure/user.schema";
-import { ListingModel } from "../src/features/listings/infrastructure/listing.schema";
-import { ConversationModel } from "../src/features/messaging/infrastructure/conversation.schema";
-import { MessageModel } from "../src/features/messaging/infrastructure/message.schema";
-import { SavedItemModel } from "../src/features/listings/infrastructure/saved-item.schema";
+import { conversationKey } from "../src/features/messaging/domain/conversation";
+import { prisma } from "../src/shared/db/connection";
 
 const PASSWORD = process.env.SEED_PASSWORD ?? "campus1234";
 
@@ -446,64 +441,67 @@ const LISTINGS: SeedListing[] = [
 ];
 
 async function seed(): Promise<void> {
-  await connectToDatabase();
   const passwordHash = await bcrypt.hash(PASSWORD, 12);
 
-  const userIds = new Map<string, mongoose.Types.ObjectId>();
+  const userIds = new Map<string, string>();
   for (const student of STUDENTS) {
-    const user = await UserModel.findOneAndUpdate(
-      { email: student.email },
-      {
-        $set: {
-          name: student.name,
-          passwordHash,
-          bio: student.bio,
-          campusArea: student.area,
-          role: "student",
-        },
-        // Ratings are only seeded on insert — re-running should not keep inflating them.
-        $setOnInsert: {
-          ratingSum: Math.floor(Math.random() * 8) + 12,
-          ratingCount: Math.floor(Math.random() * 2) + 3,
-        },
+    const user = await prisma.user.upsert({
+      where: { email: student.email },
+      update: {
+        name: student.name,
+        passwordHash,
+        bio: student.bio,
+        campusArea: student.area,
+        role: "student",
       },
-      { upsert: true, returnDocument: "after" },
-    ).exec();
-    userIds.set(student.email, user._id);
+      // Ratings are only set on insert — re-running should not keep inflating them.
+      create: {
+        name: student.name,
+        email: student.email,
+        passwordHash,
+        bio: student.bio,
+        campusArea: student.area,
+        role: "student",
+        ratingSum: Math.floor(Math.random() * 8) + 12,
+        ratingCount: Math.floor(Math.random() * 2) + 3,
+      },
+      select: { id: true },
+    });
+    userIds.set(student.email, user.id);
   }
   process.stdout.write(`Seeded ${userIds.size} students\n`);
 
-  const listingIds: mongoose.Types.ObjectId[] = [];
+  const listingIds: string[] = [];
   for (const item of LISTINGS) {
     const sellerId = userIds.get(item.seller);
     if (!sellerId) continue;
 
     const slug = toSlug(item.title) as Slug;
-    // The domain forbids a price on free/exchange listings; the seed must obey the same
-    // rule it enforces at runtime, or it would create data the app rejects on edit.
+    // The domain forbids a price on free/exchange listings; the seed obeys the same rule
+    // it enforces at runtime, or it would create data the app rejects on edit.
     const pricePaise = item.mode === "sell" || item.mode === "rent" ? item.rupees * 100 : 0;
 
-    const listing = await ListingModel.findOneAndUpdate(
-      { slug },
-      {
-        $set: {
-          title: item.title,
-          description: item.description,
-          category: item.category,
-          condition: item.condition,
-          mode: item.mode,
-          pricePaise,
-          rentUnit: item.mode === "rent" ? (item.rentUnit ?? "week") : null,
-          pickupArea: item.pickup,
-          swatch: swatchForKey(slug),
-          sellerId,
-          status: "active",
-          images: [],
-        },
-      },
-      { upsert: true, returnDocument: "after" },
-    ).exec();
-    listingIds.push(listing._id);
+    const fields = {
+      title: item.title,
+      description: item.description,
+      category: item.category,
+      condition: item.condition,
+      mode: item.mode,
+      pricePaise,
+      rentUnit: item.mode === "rent" ? (item.rentUnit ?? "week") : null,
+      pickupArea: item.pickup,
+      swatch: swatchForKey(slug),
+      sellerId,
+      status: "active",
+    };
+
+    const listing = await prisma.listing.upsert({
+      where: { slug },
+      update: fields,
+      create: { slug, ...fields },
+      select: { id: true },
+    });
+    listingIds.push(listing.id);
   }
   process.stdout.write(`Seeded ${listingIds.length} listings\n`);
 
@@ -511,63 +509,65 @@ async function seed(): Promise<void> {
   // first thing you see in a demo.
   const alex = userIds.get("alex@campus.edu");
   const priya = userIds.get("priya@campus.edu");
-  const arduino = await ListingModel.findOne({
-    slug: toSlug("Arduino Uno R3 starter kit"),
-  }).exec();
+  const arduino = await prisma.listing.findUnique({
+    where: { slug: toSlug("Arduino Uno R3 starter kit") },
+    select: { id: true },
+  });
 
   if (alex && priya && arduino) {
     for (const listingId of listingIds.slice(3, 6)) {
-      await SavedItemModel.findOneAndUpdate(
-        { userId: alex, listingId },
-        { $setOnInsert: { userId: alex, listingId } },
-        { upsert: true },
-      ).exec();
+      await prisma.savedItem.upsert({
+        where: { userId_listingId: { userId: alex, listingId } },
+        update: {},
+        create: { userId: alex, listingId },
+      });
     }
 
-    const participantIds = [alex, priya].sort((a, b) =>
-      a.toString().localeCompare(b.toString()),
-    );
-    const conversation = await ConversationModel.findOneAndUpdate(
-      {
-        pairKey: `${arduino._id.toString()}:${participantIds[0]?.toString()}:${participantIds[1]?.toString()}`,
-      },
-      {
-        $set: {
-          listingId: arduino._id,
-          participantIds,
-          pairKey: `${arduino._id.toString()}:${participantIds[0]?.toString()}:${participantIds[1]?.toString()}`,
-          lastMessagePreview: "Perfect — see you at the Library Steps at 4.",
-          lastMessageAt: new Date(),
-        },
-        $setOnInsert: { unread: { [priya.toString()]: 1 } },
-      },
-      { upsert: true, returnDocument: "after" },
-    ).exec();
+    const pairKey = conversationKey(toEntityId(arduino.id), [
+      toEntityId(alex),
+      toEntityId(priya),
+    ]);
+    const lastMessage = "Perfect — see you at the Library Steps at 4.";
 
-    const existing = await MessageModel.countDocuments({
-      conversationId: conversation._id,
-    }).exec();
+    const conversation = await prisma.conversation.upsert({
+      where: { pairKey },
+      update: { lastMessagePreview: lastMessage, lastMessageAt: new Date() },
+      create: {
+        pairKey,
+        listingId: arduino.id,
+        lastMessagePreview: lastMessage,
+        lastMessageAt: new Date(),
+        participants: {
+          create: [
+            { userId: alex, unreadCount: 0 },
+            { userId: priya, unreadCount: 1 },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+
+    const existing = await prisma.message.count({
+      where: { conversationId: conversation.id },
+    });
     if (existing === 0) {
-      await MessageModel.insertMany([
-        {
-          conversationId: conversation._id,
-          senderId: alex,
-          body: "Hi! Is the Arduino kit still available?",
-          readAt: new Date(),
-        },
-        {
-          conversationId: conversation._id,
-          senderId: priya,
-          body: "It is — everything's in the box, board tested this morning.",
-          readAt: new Date(),
-        },
-        {
-          conversationId: conversation._id,
-          senderId: alex,
-          body: "Perfect — see you at the Library Steps at 4.",
-          readAt: null,
-        },
-      ]);
+      await prisma.message.createMany({
+        data: [
+          {
+            conversationId: conversation.id,
+            senderId: alex,
+            body: "Hi! Is the Arduino kit still available?",
+            readAt: new Date(),
+          },
+          {
+            conversationId: conversation.id,
+            senderId: priya,
+            body: "It is — everything's in the box, board tested this morning.",
+            readAt: new Date(),
+          },
+          { conversationId: conversation.id, senderId: alex, body: lastMessage, readAt: null },
+        ],
+      });
     }
     process.stdout.write("Seeded saved items and one conversation\n");
   }
@@ -575,7 +575,7 @@ async function seed(): Promise<void> {
   process.stdout.write(`\nDemo accounts — password: ${PASSWORD}\n`);
   for (const student of STUDENTS) process.stdout.write(`  ${student.email}\n`);
 
-  await mongoose.disconnect();
+  await prisma.$disconnect();
 }
 
 seed().catch((error: unknown) => {

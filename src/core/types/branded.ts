@@ -12,7 +12,10 @@ export type EntityId = Brand<string, "EntityId">;
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
+// Prisma `@default(cuid())`: a lowercase alphanumeric string starting with "c".
+// Deliberately permissive on length — cuid1 and cuid2 differ, and this only needs to
+// reject obviously-not-an-id input before it reaches the database.
+const ENTITY_ID_PATTERN = /^[a-z0-9]{8,32}$/i;
 
 export function isSlug(value: string): value is Slug {
   return SLUG_PATTERN.test(value);
@@ -23,7 +26,7 @@ export function isEmail(value: string): value is Email {
 }
 
 export function isEntityId(value: string): value is EntityId {
-  return OBJECT_ID_PATTERN.test(value);
+  return ENTITY_ID_PATTERN.test(value);
 }
 
 /** Normalises to lowercase and trims before branding. */

@@ -13,8 +13,10 @@ const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 
-  MONGODB_URI: z.string().min(1).default("mongodb://localhost:27017/?replicaSet=rs0"),
-  MONGODB_DB_NAME: z.string().min(1).default("campus_loop"),
+  DATABASE_URL: z
+    .string()
+    .min(1)
+    .default("postgresql://campus:campus@localhost:5432/campus_loop"),
 
   AUTH_SECRET: z.string().default(""),
   AUTH_URL: z.string().default("http://localhost:3000"),
@@ -28,7 +30,7 @@ const schema = z.object({
 });
 
 /** Without these the app cannot serve a single authenticated request in production. */
-const PRODUCTION_REQUIRED = ["MONGODB_URI", "AUTH_SECRET"] as const;
+const PRODUCTION_REQUIRED = ["DATABASE_URL", "AUTH_SECRET"] as const;
 
 const parsed = schema.safeParse(process.env);
 

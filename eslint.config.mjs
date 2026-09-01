@@ -11,7 +11,7 @@ import nextTs from "eslint-config-next/typescript";
  * `npm run test:arch` checks the same rules from the module graph's side. If one of
  * these blocks you, the design is wrong — move the code, do not weaken the rule.
  */
-const VENDOR_SDKS = ["mongoose", "cloudinary", "bcryptjs", "next-auth", "next-auth/*"];
+const VENDOR_SDKS = ["@prisma/client", "cloudinary", "bcryptjs", "next-auth", "next-auth/*"];
 
 const eslintConfig = defineConfig([
   ...nextVitals,

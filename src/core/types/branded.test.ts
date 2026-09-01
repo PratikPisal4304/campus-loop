@@ -13,10 +13,16 @@ describe("branded types", () => {
     expect(isEmail("spaces in@example.com")).toBe(false);
   });
 
-  it("accepts a 24-character hex ObjectId and nothing else", () => {
-    expect(isEntityId("507f1f77bcf86cd799439011")).toBe(true);
-    expect(isEntityId("507f1f77bcf86cd79943901")).toBe(false);
-    expect(isEntityId("not-an-object-id-at-all!")).toBe(false);
+  it("accepts a cuid and rejects input that is clearly not an id", () => {
+    // Prisma `@default(cuid())`. The check is deliberately permissive on length — cuid1
+    // and cuid2 differ — and exists to reject obvious junk before it reaches the database,
+    // not to re-implement the id format.
+    expect(isEntityId("clx3k9d2h0000v8p1abcd1234")).toBe(true);
+    expect(isEntityId("cm4h7q2xy0001s3n9")).toBe(true);
+    expect(isEntityId("")).toBe(false);
+    expect(isEntityId("short")).toBe(false);
+    expect(isEntityId("not an id at all!")).toBe(false);
+    expect(isEntityId("../../etc/passwd")).toBe(false);
   });
 
   describe("toSlug", () => {

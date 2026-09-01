@@ -3,7 +3,9 @@
 A student marketplace: buy what you need, rent what you need temporarily, sell what you no
 longer use, and exchange or give away useful things with students around campus.
 
-Next.js 16 (App Router) · TypeScript · MongoDB/Mongoose · Auth.js v5 · Tailwind CSS v4.
+Next.js 16 (App Router) · TypeScript · Postgres/Prisma · Auth.js v5 · Tailwind CSS v4.
+
+Deployed on Vercel with a Neon Postgres database.
 
 ---
 
@@ -14,7 +16,8 @@ Requires **Node 22+** and **Docker** (for the local database).
 ```bash
 npm install
 cp .env.example .env.local          # then set AUTH_SECRET (see below)
-npm run db:up                       # MongoDB as a single-node replica set
+npm run db:up                       # Postgres in Docker
+npm run db:deploy                   # apply migrations
 npm run db:seed                     # 8 students, 32 listings, a conversation
 npm run dev                         # http://localhost:3000
 ```
@@ -38,9 +41,11 @@ and listings fall back to their colour tile; everything else works.
 | --- | --- |
 | `npm run dev` | Development server |
 | `npm run build` / `npm run start` | Production build and server |
-| `npm run db:up` / `db:down` | Start/stop local MongoDB (data survives `down`) |
+| `npm run db:up` / `db:down` | Start/stop local Postgres (data survives `down`) |
 | `npm run db:seed` | Seed demo data — idempotent, safe to re-run |
-| `npm run db:indexes` | Sync indexes to the schemas. **Required on every deploy** |
+| `npm run db:migrate` | Create and apply a migration after editing the schema |
+| `npm run db:deploy` | Apply committed migrations — what production runs |
+| `npm run db:studio` | Browse the database in Prisma Studio |
 | `npm run verify` | typecheck + lint + architecture tests + unit tests |
 | `npm run test` | Vitest unit tests |
 | `npm run test:arch` | dependency-cruiser architecture boundaries |
@@ -64,7 +69,7 @@ src/
     messaging/    conversations and messages
       domain/           entities, policies, port interfaces  (pure)
       application/      use cases — return Result
-      infrastructure/   mongoose schemas, repositories, adapters
+      infrastructure/   prisma repositories, mappers, adapters
       index.ts          the feature's public API and composition root
   app/          routing only — thin controllers
   components/   ui/ primitives + brand/ design system
@@ -83,9 +88,10 @@ Three ideas carry most of the weight:
   the compiler forces callers to handle; exceptions are reserved for dropped connections
   and misconfiguration.
 - **Ports and adapters.** `domain/` declares interfaces; `infrastructure/` implements them
-  with Mongoose and returns domain entities, never documents. The feature's `index.ts` is
-  the composition root that binds the two, so nothing outside a feature ever sees a
-  repository.
+  with Prisma and returns domain entities, never rows. The feature's `index.ts` is the
+  composition root that binds the two, so nothing outside a feature ever sees a repository.
+  This paid for itself: migrating from MongoDB to Postgres touched only `infrastructure/`
+  and the seed script — every domain and application file compiled unchanged.
 - **Money as integer paise.** Float rupees lose fractions; a `Money` value object holds
   whole minor units and only becomes a string at the presentation edge.
 
@@ -110,7 +116,7 @@ scaffolding — worth knowing, because several decisions here are direct respons
 - Every `onclick` in `legacy/index.html` called a function that was never written, so the
   listings grid was permanently empty and clicking anything threw a `ReferenceError`.
 - "Auth" was one record in `localStorage` holding a **plaintext password**, so exactly one
-  account could exist per browser. Now: bcrypt hashes in MongoDB behind Auth.js, with
+  account could exist per browser. Now: bcrypt hashes in Postgres behind Auth.js, with
   sign-in failures that don't reveal whether an email is registered.
 - The sell/rent/exchange/free toggle was decorative — nothing read it — so a "Free" item
   could be published with a price attached. That rule now lives in the domain
@@ -135,5 +141,4 @@ missing photos.
   search → save → message a seller, plus auth gating and URL-driven filters.
 - **dependency-cruiser** covers the architecture itself.
 
-CI runs all of it on Node 22, promoting the MongoDB service container to a replica set
-first — transactions require one.
+CI runs all of it on Node 22 against a Postgres service container.

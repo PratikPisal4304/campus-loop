@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Campus Loop — a student marketplace where students buy, rent, sell, exchange and give away
-educational items. Next.js 16 · MongoDB/Mongoose · Auth.js v5 · Tailwind v4.
+educational items. Next.js 16 · Postgres/Prisma · Auth.js v5 · Tailwind v4.
 
 `legacy/` holds the original static HTML/CSS/JS prototype this replaced. It is reference
 material only — nothing imports it, and ESLint ignores it.
@@ -19,7 +19,7 @@ src/shared/       cross-cutting infra (db, media, env, logger, ui utils) — no 
 src/features/<capability>/
     domain/           entities, value objects, policies, PORT interfaces. Pure TS.
     application/      use cases orchestrating domain + ports. Returns Result.
-    infrastructure/   adapters: mongoose schemas/mappers/repositories, vendor SDKs.
+    infrastructure/   adapters: prisma repositories/mappers, vendor SDKs.
     index.ts          the feature's PUBLIC API — the only path other code may import.
 src/app/          Next.js routing only. Thin controllers.
 src/components/   ui/ (primitives) and brand/ (Campus Loop design system)
@@ -39,7 +39,7 @@ If a rule blocks you, the design is wrong — do not weaken the rule.
   in presentation, via `Money.format()`.
 - **Expected failures return `Result`**, not exceptions. Throw only for the genuinely
   exceptional (dead connection, missing secret).
-- **Repositories return domain entities**, never Mongoose documents. Mappers sit beside schemas.
+- **Repositories return domain entities**, never Prisma rows. Mappers sit beside the repositories.
 - **Server actions are thin**: `requireUser()` → Zod-parse → call use case → map Result →
   `revalidatePath`. Every mutating action calls the guard itself — `src/proxy.ts` gates
   navigation but does **not** run for a direct server-action invocation.
@@ -65,10 +65,11 @@ offset circle outline — that is deliberate, not a missing image.
 ## Commands
 
 ```
-npm run db:up          local MongoDB single-node replica set via Docker (needed first)
+npm run db:up          local Postgres via Docker (needed first)
+npm run db:migrate     create + apply a migration after editing prisma/schema.prisma
+npm run db:deploy      apply committed migrations (what production runs)
 npm run dev            develop
 npm run db:seed        8 students, 32 listings, saved items, one conversation
-npm run db:indexes     sync indexes to the schemas — also required on every deploy
 npm run verify         typecheck + lint + arch tests + unit tests — before every commit
 npm run e2e            Playwright suite (needs a seeded database)
 ```
@@ -78,23 +79,35 @@ Demo accounts after seeding: `alex@campus.edu` … `anika@campus.edu`, password 
 
 ## Traps already hit — do not re-introduce
 
-- **A unique index over an array field is multikey.** `{listingId, participantIds}` unique
-  enforces one thread per listing per *person*, so the second buyer to message a seller
-  fails with E11000. Conversations key on the derived scalar `pairKey` instead
-  (`conversationKey()` in `messaging/domain/conversation.ts`).
-- **`sparse: true` does not skip an explicit `null`.** Use `partialFilterExpression` with a
-  `$type` check (see `saved-item.schema.ts`, `conversation.schema.ts`).
+- **Thread uniqueness must live on one column.** Conversations are unique on the derived
+  scalar `pairKey` (`conversationKey()` in `messaging/domain/conversation.ts`), never on
+  the participant set. Constraining the participants instead means "one thread per listing
+  per *person*", so the second buyer to message a seller collides — the exact bug the
+  MongoDB version shipped with a multikey array index.
 - **`formData.get()` returns `null` for a field the form did not render**, and Zod's
   `.optional()` rejects `null`. Funnel form reads through the `field()` helper in
   `_actions/listings.ts`, or a sale fails validation on the rental period it never showed.
 - **A `"use server"` file may only export async functions.** Form-state constants live in
   `_actions/form-state.ts`.
 - **`@/features/listings` is `server-only`.** A `"use client"` component importing it drags
-  mongoose into the browser bundle and fails the build — import `@/features/listings/client`
+  Prisma into the browser bundle and fails the build — import `@/features/listings/client`
   for the pure domain vocabulary.
+- **Prisma 7 keeps the connection URL in `prisma.config.ts`, not `schema.prisma`**, and the
+  runtime client needs a driver adapter (`@prisma/adapter-pg`). Pin `prisma` and
+  `@prisma/client` to the same version — `prisma@latest` is currently an RC.
 - **The Auth.js `session` callback belongs in `auth.config.ts`** (the edge half), not
   `auth.ts`. The proxy builds its session from that config alone, and without it every
   ownership check downstream sees an undefined user id.
 - **Scripts importing feature modules need `--conditions=react-server`**, or `server-only`
   throws under plain Node.
 - **Next 16 renamed `middleware.ts` to `src/proxy.ts`**, and `params`/`searchParams` are async.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -70,7 +70,12 @@ test.describe("Campus Loop", () => {
     await test.step("saves someone else's listing", async () => {
       await page.goto("/listings/arduino-uno-r3-starter-kit");
       await page.getByRole("button", { name: /^save$/i }).click();
-      await expect(page.getByRole("button", { name: /saved/i })).toBeVisible();
+      // The button is optimistic, so it flips to "Saved" before the write lands. It is
+      // disabled for the duration of the transition, so waiting for it to be enabled
+      // again is what proves the row is actually durable before we navigate away.
+      const savedButton = page.getByRole("button", { name: /saved/i });
+      await expect(savedButton).toBeVisible();
+      await expect(savedButton).toBeEnabled();
 
       await page.goto("/saved");
       await expect(
@@ -81,7 +86,8 @@ test.describe("Campus Loop", () => {
     await test.step("messages the seller", async () => {
       await page.goto("/listings/arduino-uno-r3-starter-kit");
       await page.getByRole("button", { name: /message seller/i }).click();
-      await expect(page).toHaveURL(/\/messages\/[a-f\d]{24}/, { timeout: 20_000 });
+      // Ids are cuids, not ObjectIds — the shape changed with the move to Postgres.
+      await expect(page).toHaveURL(/\/messages\/[a-z0-9]{8,}/, { timeout: 20_000 });
 
       await page.getByRole("textbox", { name: /message/i }).fill("Is this still available?");
       await page.getByRole("button", { name: /send/i }).click();

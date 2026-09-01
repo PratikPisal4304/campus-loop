@@ -1,40 +1,32 @@
 import "server-only";
-import mongoose from "mongoose";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 import { env, isProduction } from "../env";
 
 /**
- * Mongoose connection, cached across hot reloads.
+ * The Prisma client, cached across hot reloads.
  *
  * In development Next re-evaluates modules on every edit. Without this cache each reload
- * would open a fresh pool and Mongo would eventually refuse connections, so the promise
- * is parked on `globalThis` — the one place module reloading does not reach.
+ * would construct a fresh client and open its own connection pool until Postgres refused
+ * new connections, so the instance is parked on `globalThis` — the one place module
+ * reloading does not reach.
  */
 declare global {
-  var __campusLoopMongoose: { promise: Promise<typeof mongoose> | null } | undefined;
+  var __campusLoopPrisma: PrismaClient | undefined;
 }
 
-const cache = (globalThis.__campusLoopMongoose ??= { promise: null });
+/**
+ * Prisma 7 connects through a driver adapter rather than its own engine binary. `pg`
+ * speaks plain Postgres, so the same adapter serves local Docker and Neon in production —
+ * Neon's pooled connection string is a standard Postgres URL.
+ */
+export const prisma: PrismaClient =
+  globalThis.__campusLoopPrisma ??
+  new PrismaClient({
+    adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
+    log: isProduction ? ["error"] : ["error", "warn"],
+  });
 
-export async function connectToDatabase(): Promise<typeof mongoose> {
-  if (cache.promise) return cache.promise;
-
-  cache.promise = mongoose
-    .connect(env.MONGODB_URI, {
-      dbName: env.MONGODB_DB_NAME,
-      serverSelectionTimeoutMS: 5_000,
-      maxPoolSize: 10,
-      readConcern: { level: "majority" },
-      writeConcern: { w: "majority" },
-      // Index building is a deploy step in production (`npm run db:indexes`), not
-      // something to do on the request path.
-      autoIndex: !isProduction,
-    })
-    .catch((error: unknown) => {
-      // Clear the cache so the next request retries instead of forever awaiting a
-      // promise that already rejected.
-      cache.promise = null;
-      throw error;
-    });
-
-  return cache.promise;
+if (!isProduction) {
+  globalThis.__campusLoopPrisma = prisma;
 }

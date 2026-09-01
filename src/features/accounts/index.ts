@@ -3,17 +3,17 @@ import type { EntityId } from "@/core/types/branded";
 import * as profile from "./application/profile";
 import * as accounts from "./application/register";
 import { BcryptPasswordHasher } from "./infrastructure/bcrypt-hasher";
-import { MongoUserRepository } from "./infrastructure/user.repository";
+import { PrismaUserRepository } from "./infrastructure/user.repository";
 
 /**
  * Public API of the accounts feature.
  *
- * This barrel is also the feature's composition root: it binds the Mongo and bcrypt
+ * This barrel is also the feature's composition root: it binds the Prisma and bcrypt
  * adapters to the use cases, so callers never see a repository or a hasher. Nothing
  * outside this folder may import a deeper path — enforced by ESLint and `test:arch`.
  */
 const deps: accounts.AccountDeps = {
-  users: new MongoUserRepository(),
+  users: new PrismaUserRepository(),
   hasher: new BcryptPasswordHasher(),
 };
 

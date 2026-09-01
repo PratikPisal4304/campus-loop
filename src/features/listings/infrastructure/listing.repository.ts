@@ -1,7 +1,8 @@
 import "server-only";
-import { Types, type QueryFilter, type SortOrder as MongoSortOrder } from "mongoose";
+import type { Prisma } from "@prisma/client";
 import type { EntityId, Slug } from "@/core/types/branded";
-import { connectToDatabase } from "@/shared/db/connection";
+import { prisma } from "@/shared/db/connection";
+import type { Listing, ListingStatus } from "../domain/listing";
 import type {
   CreateListingInput,
   ListingPage,
@@ -10,155 +11,166 @@ import type {
   SellerStats,
   UpdateListingInput,
 } from "../domain/ports";
-import type { Listing, ListingStatus } from "../domain/listing";
 import { toListing } from "./listing.mapper";
-import { ListingModel, type ListingDocument } from "./listing.schema";
 
 const DEFAULT_LIMIT = 24;
 const MAX_LIMIT = 60;
 
-export class MongoListingRepository implements ListingRepository {
+export class PrismaListingRepository implements ListingRepository {
   async findById(id: EntityId): Promise<Listing | null> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(id)) return null;
-    const doc = await ListingModel.findById(new Types.ObjectId(id))
-      .lean<ListingDocument>()
-      .exec();
-    return doc ? toListing(doc) : null;
+    const row = await prisma.listing.findUnique({ where: { id } });
+    return row ? toListing(row) : null;
   }
 
   async findBySlug(slug: Slug): Promise<Listing | null> {
-    await connectToDatabase();
-    const doc = await ListingModel.findOne({ slug }).lean<ListingDocument>().exec();
-    return doc ? toListing(doc) : null;
+    const row = await prisma.listing.findUnique({ where: { slug } });
+    return row ? toListing(row) : null;
   }
 
   async search(query: ListingQuery): Promise<ListingPage> {
-    await connectToDatabase();
+    const where: Prisma.ListingWhereInput = {};
 
-    const filter: QueryFilter<ListingDocument> = {
-      status: query.status ?? "active",
-    };
-    if (query.category) filter.category = query.category;
-    if (query.mode) filter.mode = query.mode;
-    if (query.condition) filter.condition = query.condition;
-    if (query.sellerId && Types.ObjectId.isValid(query.sellerId)) {
-      filter.sellerId = new Types.ObjectId(query.sellerId);
+    // `status: undefined` means "any status" — that is how My Loop shows closed listings
+    // alongside active ones. Only default to "active" when the caller said nothing.
+    if ("status" in query) {
+      if (query.status) where.status = query.status;
+    } else {
+      where.status = "active";
     }
+
+    if (query.category) where.category = query.category;
+    if (query.mode) where.mode = query.mode;
+    if (query.condition) where.condition = query.condition;
+    if (query.sellerId) where.sellerId = query.sellerId;
 
     const search = query.search?.trim();
     if (search) {
-      // A regex OR rather than $text: students search for partial model numbers like
-      // "991" or "TI-84", and $text only matches whole indexed words, so it would miss
-      // both. The result set here is a single campus, not a web-scale corpus.
-      const pattern = new RegExp(escapeRegex(search), "i");
-      filter.$or = [{ title: pattern }, { description: pattern }, { pickupArea: pattern }];
+      // `contains` rather than full-text search: students look for partial model numbers
+      // like "991" or "TI-84", and Postgres full-text search matches whole lexemes, so it
+      // would miss both. The corpus is one campus, not the web.
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+        { pickupArea: { contains: search, mode: "insensitive" } },
+      ];
     }
 
     const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
-    const [docs, total] = await Promise.all([
-      ListingModel.find(filter)
-        .sort(sortFor(query.sort))
-        .skip(query.skip ?? 0)
-        .limit(limit)
-        .lean<ListingDocument[]>()
-        .exec(),
-      ListingModel.countDocuments(filter).exec(),
+    const [rows, total] = await Promise.all([
+      prisma.listing.findMany({
+        where,
+        orderBy: orderFor(query.sort),
+        skip: query.skip ?? 0,
+        take: limit,
+      }),
+      prisma.listing.count({ where }),
     ]);
 
-    return { items: docs.map(toListing), total };
+    return { items: rows.map(toListing), total };
   }
 
   async slugExists(slug: Slug): Promise<boolean> {
-    await connectToDatabase();
-    const count = await ListingModel.countDocuments({ slug }).limit(1).exec();
-    return count > 0;
+    const found = await prisma.listing.findUnique({ where: { slug }, select: { id: true } });
+    return found !== null;
   }
 
   async create(input: CreateListingInput): Promise<Listing> {
-    await connectToDatabase();
-    const created = await ListingModel.create({
-      ...input,
-      sellerId: new Types.ObjectId(input.sellerId),
-      images: [...input.images],
+    const row = await prisma.listing.create({
+      data: {
+        slug: input.slug,
+        title: input.title,
+        description: input.description,
+        category: input.category,
+        condition: input.condition,
+        mode: input.mode,
+        pricePaise: input.pricePaise,
+        rentUnit: input.rentUnit,
+        pickupArea: input.pickupArea,
+        // Prisma types a Json column as a structural JSON value; our readonly
+        // ListingImage[] is compatible at runtime but not by index signature.
+        images: input.images as unknown as Prisma.InputJsonValue,
+        swatch: input.swatch,
+        sellerId: input.sellerId,
+      },
     });
-    return toListing(created.toObject() as ListingDocument);
+    return toListing(row);
   }
 
   async update(id: EntityId, input: UpdateListingInput): Promise<Listing | null> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(id)) return null;
-    const updated = await ListingModel.findByIdAndUpdate(
-      new Types.ObjectId(id),
-      { ...input, images: [...input.images] },
-      { returnDocument: "after" },
-    )
-      .lean<ListingDocument>()
-      .exec();
-    return updated ? toListing(updated) : null;
+    try {
+      const row = await prisma.listing.update({
+        where: { id },
+        data: {
+          title: input.title,
+          description: input.description,
+          category: input.category,
+          condition: input.condition,
+          mode: input.mode,
+          pricePaise: input.pricePaise,
+          rentUnit: input.rentUnit,
+          pickupArea: input.pickupArea,
+          images: input.images as unknown as Prisma.InputJsonValue,
+        },
+      });
+      return toListing(row);
+    } catch {
+      // P2025 — the row vanished between the ownership check and the write. The port's
+      // contract is "null means gone", not an exception.
+      return null;
+    }
   }
 
   async setStatus(id: EntityId, status: ListingStatus): Promise<Listing | null> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(id)) return null;
-    const updated = await ListingModel.findByIdAndUpdate(
-      new Types.ObjectId(id),
-      { status },
-      { returnDocument: "after" },
-    )
-      .lean<ListingDocument>()
-      .exec();
-    return updated ? toListing(updated) : null;
+    try {
+      const row = await prisma.listing.update({ where: { id }, data: { status } });
+      return toListing(row);
+    } catch {
+      return null;
+    }
   }
 
   async remove(id: EntityId): Promise<void> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(id)) return;
-    await ListingModel.findByIdAndDelete(new Types.ObjectId(id)).exec();
+    try {
+      await prisma.listing.delete({ where: { id } });
+    } catch {
+      // Already gone is the state the caller asked for.
+    }
   }
 
   async statsForSeller(sellerId: EntityId): Promise<SellerStats> {
-    await connectToDatabase();
-    if (!Types.ObjectId.isValid(sellerId)) return { listed: 0, forSale: 0, forRent: 0 };
+    // One grouped round-trip rather than three counts: My Loop renders all three numbers
+    // at once, and they should agree with each other.
+    const rows = await prisma.listing.groupBy({
+      by: ["mode"],
+      where: { sellerId, status: "active" },
+      _count: { _all: true },
+    });
 
-    // One grouped round-trip rather than three counts: the My Loop header renders all
-    // three numbers at once, and they should agree with each other.
-    const rows = await ListingModel.aggregate<{ _id: string; count: number }>([
-      { $match: { sellerId: new Types.ObjectId(sellerId), status: "active" } },
-      { $group: { _id: "$mode", count: { $sum: 1 } } },
-    ]).exec();
-
-    const byMode = new Map(rows.map((row) => [row._id, row.count]));
-    const total = rows.reduce((sum, row) => sum + row.count, 0);
+    const byMode = new Map(rows.map((row) => [row.mode, row._count._all]));
+    const listed = rows.reduce((sum, row) => sum + row._count._all, 0);
     return {
-      listed: total,
+      listed,
       forSale: byMode.get("sell") ?? 0,
       forRent: byMode.get("rent") ?? 0,
     };
   }
 
   async listActiveSlugs(): Promise<readonly Slug[]> {
-    await connectToDatabase();
-    const docs = await ListingModel.find({ status: "active" })
-      .select("slug")
-      .lean<{ slug: string }[]>()
-      .exec();
-    return docs.map((doc) => doc.slug as Slug);
+    const rows = await prisma.listing.findMany({
+      where: { status: "active" },
+      select: { slug: true },
+    });
+    return rows.map((row) => row.slug as Slug);
   }
 }
 
-function sortFor(sort: ListingQuery["sort"]): Record<string, MongoSortOrder> {
+function orderFor(sort: ListingQuery["sort"]): Prisma.ListingOrderByWithRelationInput[] {
   switch (sort) {
     case "price-asc":
-      return { pricePaise: 1, createdAt: -1 };
+      return [{ pricePaise: "asc" }, { createdAt: "desc" }];
     case "price-desc":
-      return { pricePaise: -1, createdAt: -1 };
+      return [{ pricePaise: "desc" }, { createdAt: "desc" }];
     default:
-      return { createdAt: -1 };
+      return [{ createdAt: "desc" }];
   }
-}
-
-/** User input goes into a RegExp, so every metacharacter has to be defanged first. */
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
