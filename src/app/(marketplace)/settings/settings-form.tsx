@@ -23,9 +23,12 @@ export function SettingsForm({
       noValidate
       onSubmit={(event) => {
         const data = new FormData(event.currentTarget);
-        const found = validateFields({ name: String(data.get("name") ?? "") }, {
-          name: validators.name,
-        });
+        const found = validateFields(
+          { name: String(data.get("name") ?? "") },
+          {
+            name: validators.name,
+          },
+        );
         if (Object.keys(found).length > 0) {
           event.preventDefault();
           setErrors(found);
@@ -34,11 +37,7 @@ export function SettingsForm({
       className="flex max-w-lg flex-col gap-6"
     >
       <Field label="Full name" name="name" error={errors.name}>
-        <Input
-          defaultValue={profile.name}
-          autoComplete="name"
-          onChange={() => setErrors({})}
-        />
+        <Input defaultValue={profile.name} autoComplete="name" onChange={() => setErrors({})} />
       </Field>
 
       <Field
@@ -68,15 +67,21 @@ export function SettingsForm({
           role="alert"
           className={
             state.status === "error"
-              ? "rounded-sm border border-danger/30 bg-danger/8 px-4 py-3 text-[12px] font-medium text-danger"
-              : "rounded-sm border border-success/30 bg-success/8 px-4 py-3 text-[12px] font-medium text-success"
+              ? "border-danger/30 bg-danger/8 text-danger rounded-sm border px-4 py-3 text-[12px] font-medium"
+              : "border-success/30 bg-success/8 text-success rounded-sm border px-4 py-3 text-[12px] font-medium"
           }
         >
           {state.message}
         </p>
       )}
 
-      <Button type="submit" variant="accent" size="lg" disabled={isPending} className="self-start">
+      <Button
+        type="submit"
+        variant="accent"
+        size="lg"
+        disabled={isPending}
+        className="self-start"
+      >
         {isPending ? "Saving…" : "Save changes"}
       </Button>
     </form>

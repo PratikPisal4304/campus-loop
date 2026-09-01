@@ -41,7 +41,7 @@ export function ListingCard({
   action?: React.ReactNode;
 }) {
   return (
-    <article className="group relative overflow-hidden rounded-md border border-border bg-surface transition-all duration-250 hover:-translate-y-1 hover:shadow-card-hover">
+    <article className="group border-border bg-surface hover:shadow-card-hover relative overflow-hidden rounded-md border transition-all duration-250 hover:-translate-y-1">
       <Link href={`/listings/${listing.slug}`} className="block">
         <div
           className={cn(
@@ -87,7 +87,7 @@ export function ListingCard({
             {listing.title}
           </h3>
 
-          <p className="mt-2.5 text-[9px] text-fg-muted">📍 {listing.pickupArea}</p>
+          <p className="text-fg-muted mt-2.5 text-[9px]">📍 {listing.pickupArea}</p>
 
           <div className="mt-2 flex items-center justify-between text-[9px]">
             <span className="text-fg-muted">{listing.conditionLabel}</span>
@@ -96,7 +96,7 @@ export function ListingCard({
           <p className={cn("numeral mt-4 text-[20px] font-bold", PRICE_CLASS[listing.mode])}>
             {listing.price}
             {listing.priceSuffix && (
-              <span className="ml-0.5 text-[9px] font-normal text-fg-muted">
+              <span className="text-fg-muted ml-0.5 text-[9px] font-normal">
                 {listing.priceSuffix}
               </span>
             )}
@@ -107,7 +107,7 @@ export function ListingCard({
       {action && <div className="px-[17px] pb-[17px]">{action}</div>}
 
       {listing.status !== "active" && (
-        <span className="absolute top-3 right-3 z-2 rounded-xs bg-dark px-2 py-1 font-mono text-[8px] font-bold tracking-[0.1em] text-white uppercase">
+        <span className="bg-dark absolute top-3 right-3 z-2 rounded-xs px-2 py-1 font-mono text-[8px] font-bold tracking-[0.1em] text-white uppercase">
           {listing.status}
         </span>
       )}

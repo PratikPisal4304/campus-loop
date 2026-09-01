@@ -18,15 +18,15 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <aside className="fixed top-0 left-0 z-100 hidden h-screen w-[245px] flex-col bg-sidebar px-[25px] py-[30px] text-white xl:flex">
+    <aside className="bg-sidebar fixed top-0 left-0 z-100 hidden h-screen w-[245px] flex-col px-[25px] py-[30px] text-white xl:flex">
       <Link href="/" className="flex items-center gap-[11px] text-[18px] font-extrabold">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent font-mono text-[13px] font-bold">
+        <span className="bg-accent flex h-9 w-9 items-center justify-center rounded-full font-mono text-[13px] font-bold">
           CL
         </span>
         Campus Loop
       </Link>
 
-      <p className="eyebrow mt-6 leading-[1.7] text-sidebar-muted">
+      <p className="eyebrow text-sidebar-muted mt-6 leading-[1.7]">
         Your campus.
         <br />
         In circulation.
@@ -50,7 +50,7 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
             </span>
             {item.label}
             {item.href === "/messages" && unreadCount > 0 && (
-              <span className="ml-auto flex h-[21px] min-w-[21px] items-center justify-center rounded-full bg-accent px-1.5 font-mono text-[9px] font-bold text-white">
+              <span className="bg-accent ml-auto flex h-[21px] min-w-[21px] items-center justify-center rounded-full px-1.5 font-mono text-[9px] font-bold text-white">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -58,11 +58,11 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
         ))}
       </nav>
 
-      <div className="my-6 h-px bg-sidebar-line" />
+      <div className="bg-sidebar-line my-6 h-px" />
 
       <Link
         href="/listings/new"
-        className="flex items-center gap-3 rounded-md border border-sidebar-line px-3 py-2.5 text-[13px] font-semibold transition-colors duration-200 hover:border-accent hover:bg-accent"
+        className="border-sidebar-line hover:border-accent hover:bg-accent flex items-center gap-3 rounded-md border px-3 py-2.5 text-[13px] font-semibold transition-colors duration-200"
       >
         <span aria-hidden="true" className="w-4 text-center">
           ＋
@@ -71,8 +71,8 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
       </Link>
 
       <div className="mt-auto">
-        <p className="eyebrow text-[9px] text-sidebar-muted">Student marketplace</p>
-        <p className="mt-1.5 text-[11px] text-sidebar-muted/70">Buy • Rent • Sell • Exchange</p>
+        <p className="eyebrow text-sidebar-muted text-[9px]">Student marketplace</p>
+        <p className="text-sidebar-muted/70 mt-1.5 text-[11px]">Buy • Rent • Sell • Exchange</p>
       </div>
     </aside>
   );
@@ -85,7 +85,7 @@ export function MobileNav({ unreadCount = 0 }: { unreadCount?: number }) {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-100 flex border-t border-sidebar-line bg-sidebar text-white xl:hidden">
+    <nav className="border-sidebar-line bg-sidebar fixed inset-x-0 bottom-0 z-100 flex border-t text-white xl:hidden">
       {NAV.map((item) => (
         <Link
           key={item.href}
@@ -101,7 +101,7 @@ export function MobileNav({ unreadCount = 0 }: { unreadCount?: number }) {
           </span>
           {item.label}
           {item.href === "/messages" && unreadCount > 0 && (
-            <span className="absolute top-1.5 right-[22%] h-2 w-2 rounded-full bg-accent" />
+            <span className="bg-accent absolute top-1.5 right-[22%] h-2 w-2 rounded-full" />
           )}
         </Link>
       ))}

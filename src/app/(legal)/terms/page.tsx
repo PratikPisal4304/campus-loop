@@ -10,7 +10,7 @@ export default function TermsPage() {
       <DisplayHeading as="h1" size="page">
         Terms of Use
       </DisplayHeading>
-      <p className="text-[12px] text-fg-muted">Last updated 1 September 2026</p>
+      <p className="text-fg-muted text-[12px]">Last updated 1 September 2026</p>
 
       <p>
         Campus Loop is a student marketplace built as a university project. By creating an
@@ -33,9 +33,11 @@ export default function TermsPage() {
 
       <h2>Deals happen between students</h2>
       <p>
-        <strong>Campus Loop does not process payments, hold funds, verify items, or mediate
-        disputes.</strong> Every exchange is directly between the two students involved. Meet in a
-        public place on campus, inspect the item before paying, and use your judgement.
+        <strong>
+          Campus Loop does not process payments, hold funds, verify items, or mediate disputes.
+        </strong>{" "}
+        Every exchange is directly between the two students involved. Meet in a public place on
+        campus, inspect the item before paying, and use your judgement.
       </p>
 
       <h2>Content you post</h2>
@@ -53,7 +55,8 @@ export default function TermsPage() {
 
       <h2>No warranty</h2>
       <p>
-        This is a student project provided as-is, without guarantees of availability or accuracy.
+        This is a student project provided as-is, without guarantees of availability or
+        accuracy.
       </p>
     </>
   );

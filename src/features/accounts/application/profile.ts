@@ -26,10 +26,7 @@ export function toProfileView(user: User): ProfileView {
   };
 }
 
-export async function getProfile(
-  deps: AccountDeps,
-  id: EntityId,
-): Promise<ProfileView | null> {
+export async function getProfile(deps: AccountDeps, id: EntityId): Promise<ProfileView | null> {
   const user = await deps.users.findById(id);
   return user ? toProfileView(user) : null;
 }

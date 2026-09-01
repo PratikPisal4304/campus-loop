@@ -61,7 +61,7 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
         }}
         className="flex flex-wrap items-center gap-3"
       >
-        <div className="flex h-[50px] w-full max-w-[470px] items-center gap-2 rounded-[5px] border border-border bg-white px-4">
+        <div className="border-border flex h-[50px] w-full max-w-[470px] items-center gap-2 rounded-[5px] border bg-white px-4">
           <span aria-hidden="true" className="text-fg-muted">
             ⌕
           </span>
@@ -70,11 +70,14 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
           </label>
           <input
             id="discover-search"
+            // type="search" rather than "text": it carries the searchbox role, and mobile
+            // keyboards show a "Search" key instead of a newline.
+            type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder='Search "calculator", "textbook", "Arduino"...'
             autoComplete="off"
-            className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-fg-muted/70"
+            className="placeholder:text-fg-muted/70 flex-1 bg-transparent text-[13px] outline-none [&::-webkit-search-cancel-button]:appearance-none"
           />
           {query && (
             <button
@@ -83,7 +86,7 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
                 setQuery("");
                 apply({ q: "" });
               }}
-              className="text-fg-muted transition-colors hover:text-fg"
+              className="text-fg-muted hover:text-fg transition-colors"
               aria-label="Clear search"
             >
               ✕
@@ -98,7 +101,7 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
           type="button"
           onClick={() => setShowFilters((open) => !open)}
           aria-expanded={showFilters}
-          className="h-[50px] rounded-[5px] border border-border px-4 text-[12px] font-semibold transition-colors hover:border-accent"
+          className="border-border hover:border-accent h-[50px] rounded-[5px] border px-4 text-[12px] font-semibold transition-colors"
         >
           ☷ Filters
         </button>
@@ -107,7 +110,7 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
           <button
             type="button"
             onClick={() => router.push("/", { scroll: false })}
-            className="text-[12px] font-semibold text-accent underline-offset-4 hover:underline"
+            className="text-accent text-[12px] font-semibold underline-offset-4 hover:underline"
           >
             Clear all
           </button>
@@ -115,13 +118,13 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
       </form>
 
       {showFilters && (
-        <div className="mt-4 grid gap-4 rounded-md bg-panel-sunk p-5 sm:grid-cols-2">
+        <div className="bg-panel-sunk mt-4 grid gap-4 rounded-md p-5 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5">
             <span className="eyebrow text-fg-muted">Category</span>
             <select
               value={activeCategory}
               onChange={(event) => apply({ category: event.target.value })}
-              className="h-10 rounded-sm border border-border bg-white px-3 text-[13px]"
+              className="border-border h-10 rounded-sm border bg-white px-3 text-[13px]"
             >
               <option value="">All categories</option>
               {CATEGORIES.map((category) => (
@@ -137,7 +140,7 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
             <select
               value={params.get("condition") ?? ""}
               onChange={(event) => apply({ condition: event.target.value })}
-              className="h-10 rounded-sm border border-border bg-white px-3 text-[13px]"
+              className="border-border h-10 rounded-sm border bg-white px-3 text-[13px]"
             >
               <option value="">Any condition</option>
               {CONDITIONS.map((condition) => (
@@ -153,7 +156,7 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
             <select
               value={params.get("sort") ?? "recent"}
               onChange={(event) => apply({ sort: event.target.value })}
-              className="h-10 rounded-sm border border-border bg-white px-3 text-[13px]"
+              className="border-border h-10 rounded-sm border bg-white px-3 text-[13px]"
             >
               <option value="recent">Newest first</option>
               <option value="price-asc">Price: low to high</option>
@@ -181,7 +184,7 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
               {chip.icon}
             </span>
             <strong className="text-[13px]">{chip.label}</strong>
-            <small className="text-[10px] text-fg-muted">{chip.hint}</small>
+            <small className="text-fg-muted text-[10px]">{chip.hint}</small>
           </button>
         ))}
       </div>
@@ -212,7 +215,7 @@ export function DiscoverControls({ resultCount }: { resultCount: number }) {
         </div>
       </div>
 
-      <p className="eyebrow mt-8 text-fg-muted" aria-live="polite">
+      <p className="eyebrow text-fg-muted mt-8" aria-live="polite">
         {resultCount} {resultCount === 1 ? "item" : "items"}
       </p>
     </div>

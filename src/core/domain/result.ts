@@ -10,8 +10,7 @@
  * Because it is a discriminated union, TypeScript forces callers to handle both arms.
  */
 export type Result<T, E = DomainFailure> =
-  | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly error: E };
+  { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: E };
 
 export interface DomainFailure {
   /** Stable, machine-readable code — safe to switch on and to map to an HTTP status. */

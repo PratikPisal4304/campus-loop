@@ -3,7 +3,7 @@ import { cn } from "@/shared/ui/cn";
 export function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("animate-pulse rounded-sm bg-line/60", className)}
+      className={cn("bg-line/60 animate-pulse rounded-sm", className)}
       aria-hidden="true"
       {...props}
     />
@@ -13,7 +13,7 @@ export function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
 /** Matches the real listing card's proportions so the page doesn't jump when data lands. */
 export function ListingCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-surface">
+    <div className="border-border bg-surface overflow-hidden rounded-md border">
       <Skeleton className="h-[190px] rounded-none" />
       <div className="space-y-3 p-[17px]">
         <Skeleton className="h-3.5 w-4/5" />

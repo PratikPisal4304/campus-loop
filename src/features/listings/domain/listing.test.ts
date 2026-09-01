@@ -8,8 +8,11 @@ import {
   type Mode,
 } from "./listing";
 
-const price = (mode: Mode, pricePaise: number | null, rentUnit: "day" | "week" | "month" | null = null) =>
-  validatePrice({ mode, pricePaise, rentUnit });
+const price = (
+  mode: Mode,
+  pricePaise: number | null,
+  rentUnit: "day" | "week" | "month" | null = null,
+) => validatePrice({ mode, pricePaise, rentUnit });
 
 describe("priceRuleFor", () => {
   it("requires a price only for the modes that involve money", () => {
@@ -87,7 +90,9 @@ describe("swatchForKey", () => {
 
   it("spreads titles across more than one colour", () => {
     const seen = new Set(
-      ["arduino-uno", "lab-coat", "casio-991", "drafting-set", "resnick-halliday"].map(swatchForKey),
+      ["arduino-uno", "lab-coat", "casio-991", "drafting-set", "resnick-halliday"].map(
+        swatchForKey,
+      ),
     );
     expect(seen.size).toBeGreaterThan(1);
   });

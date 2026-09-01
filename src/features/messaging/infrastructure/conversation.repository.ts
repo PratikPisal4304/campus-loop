@@ -4,7 +4,7 @@ import type { UnitOfWork } from "@/core/domain/unit-of-work";
 import { toEntityId, type EntityId } from "@/core/types/branded";
 import { connectToDatabase } from "@/shared/db/connection";
 import { sessionFrom } from "@/shared/db/transaction";
-import type { Conversation } from "../domain/conversation";
+import { conversationKey, type Conversation } from "../domain/conversation";
 import type {
   ConversationRepository,
   CreateConversationInput,
@@ -27,16 +27,11 @@ export class MongoConversationRepository implements ConversationRepository {
     participants: readonly [EntityId, EntityId],
   ): Promise<Conversation | null> {
     await connectToDatabase();
-    const ids = toObjectIds([listingId, ...participants]);
-    if (!ids) return null;
-    const [listing, first, second] = ids;
-    if (listing === undefined || first === undefined || second === undefined) return null;
 
-    // Matching the array positionally (not with `$all`) is what enforces "one thread per
-    // pair" — it mirrors the sorted key the unique index is built on.
+    // Looked up by the same derived scalar the unique index is built on, so the lookup
+    // and the constraint can never disagree about what identifies a thread.
     const doc = await ConversationModel.findOne({
-      listingId: listing,
-      participantIds: [first, second],
+      pairKey: conversationKey(listingId, participants),
     })
       .lean<ConversationDocument>()
       .exec();
@@ -51,6 +46,7 @@ export class MongoConversationRepository implements ConversationRepository {
         {
           listingId: new Types.ObjectId(input.listingId),
           participantIds: input.participantIds.map((id) => new Types.ObjectId(id)),
+          pairKey: conversationKey(input.listingId, input.participantIds),
           lastMessageAt: now,
           lastMessagePreview: "",
           unread: {},
@@ -103,12 +99,6 @@ export class MongoConversationRepository implements ConversationRepository {
       { $set: { [`unread.${userId}`]: 0 } },
     ).exec();
   }
-}
-
-/** All-or-nothing ObjectId conversion, so one bad id fails the whole query cleanly. */
-function toObjectIds(ids: readonly string[]): Types.ObjectId[] | null {
-  if (!ids.every((id) => Types.ObjectId.isValid(id))) return null;
-  return ids.map((id) => new Types.ObjectId(id));
 }
 
 /**

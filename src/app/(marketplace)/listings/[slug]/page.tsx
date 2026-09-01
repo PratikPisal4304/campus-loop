@@ -49,7 +49,7 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
   const cover = listing.images[0];
 
   return (
-    <div className="mx-auto grid max-w-[1100px] gap-12 px-page py-[55px] lg:grid-cols-[1.2fr_0.8fr]">
+    <div className="px-page mx-auto grid max-w-[1100px] gap-12 py-[55px] lg:grid-cols-[1.2fr_0.8fr]">
       <div>
         <div
           className={`relative flex h-[380px] items-end overflow-hidden rounded-lg p-7 ${SWATCH_CLASS[listing.swatch] ?? "bg-swatch-blue"}`}
@@ -85,7 +85,7 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
 
         <section className="mt-9">
           <Eyebrow className="text-fg-muted">Description</Eyebrow>
-          <p className="mt-3 text-[14px] leading-[1.8] whitespace-pre-line text-fg">
+          <p className="text-fg mt-3 text-[14px] leading-[1.8] whitespace-pre-line">
             {listing.description}
           </p>
         </section>
@@ -100,13 +100,13 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
         <p className="numeral mt-5 text-[34px] font-bold">
           {listing.price}
           {listing.priceSuffix && (
-            <span className="ml-1 text-[12px] font-normal text-fg-muted">
+            <span className="text-fg-muted ml-1 text-[12px] font-normal">
               {listing.priceSuffix}
             </span>
           )}
         </p>
 
-        <dl className="mt-6 grid grid-cols-2 gap-4 border-y border-border py-5 text-[12px]">
+        <dl className="border-border mt-6 grid grid-cols-2 gap-4 border-y py-5 text-[12px]">
           <div>
             <dt className="eyebrow text-fg-muted">Condition</dt>
             <dd className="mt-1 font-semibold">{listing.conditionLabel}</dd>
@@ -120,14 +120,14 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
         {seller && (
           <Link
             href={`/profile/${seller.id}`}
-            className="mt-6 flex items-center gap-3 rounded-md border border-border bg-surface p-4 transition-colors hover:border-accent"
+            className="border-border bg-surface hover:border-accent mt-6 flex items-center gap-3 rounded-md border p-4 transition-colors"
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-avatar text-[13px] font-bold">
+            <span className="bg-avatar flex h-11 w-11 items-center justify-center rounded-full text-[13px] font-bold">
               {seller.initials}
             </span>
             <span>
               <span className="block text-[13px] font-semibold">{seller.name}</span>
-              <span className="block text-[11px] text-fg-muted">
+              <span className="text-fg-muted block text-[11px]">
                 {seller.trust.rating
                   ? `★ ${seller.trust.rating} · ${seller.trust.label}`
                   : "New to Campus Loop"}
@@ -140,7 +140,7 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
           {isOwner ? (
             <Link
               href={`/listings/${listing.slug}/edit`}
-              className="flex h-11 items-center justify-center rounded-sm border border-border text-[13px] font-semibold transition-colors hover:border-accent hover:text-accent"
+              className="border-border hover:border-accent hover:text-accent flex h-11 items-center justify-center rounded-sm border text-[13px] font-semibold transition-colors"
             >
               Edit your listing
             </Link>
@@ -158,7 +158,7 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
           )}
         </div>
 
-        <p className="mt-6 rounded-sm bg-[#edf1e9] p-3.5 text-[11px] leading-relaxed text-fg-muted">
+        <p className="text-fg-muted mt-6 rounded-sm bg-[#edf1e9] p-3.5 text-[11px] leading-relaxed">
           ⓘ Meet in a public spot on campus and check the item before you pay.
         </p>
       </aside>

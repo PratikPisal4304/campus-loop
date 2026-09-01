@@ -36,7 +36,9 @@ export interface ListingFormInput {
  * form is not the only caller — the seed script and any future import go through this
  * same door, and the rule has to hold for all of them.
  */
-function checkPrice(input: ListingFormInput): Result<{ pricePaise: number; rentUnit: RentUnit | null }> {
+function checkPrice(
+  input: ListingFormInput,
+): Result<{ pricePaise: number; rentUnit: RentUnit | null }> {
   const violations = validatePrice({
     mode: input.mode,
     pricePaise: input.pricePaise,
@@ -47,11 +49,19 @@ function checkPrice(input: ListingFormInput): Result<{ pricePaise: number; rentU
     const details: Record<string, string> = {};
     for (const violation of violations) details[violation.field] = violation.message;
     const first = violations[0];
-    return fail("INVALID_PRICE", first?.message ?? "Check the price for this listing.", details);
+    return fail(
+      "INVALID_PRICE",
+      first?.message ?? "Check the price for this listing.",
+      details,
+    );
   }
 
   return ok(
-    normalisePrice({ mode: input.mode, pricePaise: input.pricePaise, rentUnit: input.rentUnit }),
+    normalisePrice({
+      mode: input.mode,
+      pricePaise: input.pricePaise,
+      rentUnit: input.rentUnit,
+    }),
   );
 }
 

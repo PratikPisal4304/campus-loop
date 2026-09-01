@@ -14,10 +14,7 @@ export interface RegisterInput {
   readonly password: string;
 }
 
-export async function register(
-  deps: AccountDeps,
-  input: RegisterInput,
-): Promise<Result<User>> {
+export async function register(deps: AccountDeps, input: RegisterInput): Promise<Result<User>> {
   const email = toEmail(input.email);
 
   if (await deps.users.emailExists(email)) {

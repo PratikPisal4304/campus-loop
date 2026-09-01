@@ -12,7 +12,7 @@ export default async function NewListingPage() {
   await requireUser();
 
   return (
-    <div className="mx-auto grid max-w-[1100px] gap-14 px-page py-[55px] lg:grid-cols-[1.5fr_0.7fr]">
+    <div className="px-page mx-auto grid max-w-[1100px] gap-14 py-[55px] lg:grid-cols-[1.5fr_0.7fr]">
       <div>
         <Eyebrow>Add to the circulation</Eyebrow>
         <DisplayHeading as="h1" size="page" className="mt-3">
@@ -20,7 +20,7 @@ export default async function NewListingPage() {
           <br />
           <span className="text-accent">useful.</span>
         </DisplayHeading>
-        <p className="mt-5 max-w-lg text-[14px] leading-[1.8] text-fg-muted">
+        <p className="text-fg-muted mt-5 max-w-lg text-[14px] leading-[1.8]">
           Sell, rent, exchange or give away educational items to students on campus.
         </p>
 
@@ -29,7 +29,7 @@ export default async function NewListingPage() {
         </div>
       </div>
 
-      <aside className="h-fit rounded-md bg-checklist p-7 lg:sticky lg:top-24">
+      <aside className="bg-checklist h-fit rounded-md p-7 lg:sticky lg:top-24">
         <Eyebrow className="text-fg-muted">Listing checklist</Eyebrow>
         <ol className="mt-4 flex list-decimal flex-col gap-2.5 pl-4 text-[13px] leading-relaxed">
           <li>Name the exact edition or model</li>
@@ -38,7 +38,7 @@ export default async function NewListingPage() {
           <li>Mention every included piece</li>
           <li>Use clear photos</li>
         </ol>
-        <p className="mt-6 rounded-sm bg-white/60 p-3.5 text-[11px] leading-relaxed text-fg-muted">
+        <p className="text-fg-muted mt-6 rounded-sm bg-white/60 p-3.5 text-[11px] leading-relaxed">
           ⓘ Good listings get messages faster. Be clear about condition and price.
         </p>
       </aside>

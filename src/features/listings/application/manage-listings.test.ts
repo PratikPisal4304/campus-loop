@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { toEntityId, type EntityId, type Slug } from "@/core/types/branded";
 import type { Listing } from "../domain/listing";
-import type { CreateListingInput, ListingRepository, SavedItemRepository } from "../domain/ports";
+import type {
+  CreateListingInput,
+  ListingRepository,
+  SavedItemRepository,
+} from "../domain/ports";
 import {
   createListing,
   deleteListing,
@@ -90,7 +94,11 @@ describe("createListing", () => {
   });
 
   it("reports the violation against the field so the form can highlight it", async () => {
-    const result = await createListing(makeDeps(), ALEX, { ...form, mode: "sell", pricePaise: null });
+    const result = await createListing(makeDeps(), ALEX, {
+      ...form,
+      mode: "sell",
+      pricePaise: null,
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.details?.price).toBeDefined();
   });

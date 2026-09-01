@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { toEntityId } from "@/core/types/branded";
 import {
   canMessage,
+  conversationKey,
   isParticipant,
   MAX_MESSAGE_LENGTH,
   otherParticipant,
@@ -96,5 +97,34 @@ describe("previewOf", () => {
   it("truncates to the inbox row length", () => {
     const preview = previewOf("x".repeat(300));
     expect(preview).toHaveLength(90);
+  });
+});
+
+describe("conversationKey", () => {
+  const LISTING = toEntityId("507f1f77bcf86cd7994390aa");
+  const ALEX = toEntityId("507f1f77bcf86cd799439011");
+  const PRIYA = toEntityId("507f1f77bcf86cd799439022");
+  const SAM = toEntityId("507f1f77bcf86cd799439033");
+
+  it("is the same whichever side starts the thread", () => {
+    expect(conversationKey(LISTING, [ALEX, PRIYA])).toBe(
+      conversationKey(LISTING, [PRIYA, ALEX]),
+    );
+  });
+
+  it("gives a DIFFERENT key for a second buyer on the same listing", () => {
+    // The bug this replaced: a unique index on the participantIds array is multikey, so it
+    // enforced one thread per listing per *person* — the seller. The second buyer to
+    // message a seller failed with E11000 instead of opening their own thread.
+    expect(conversationKey(LISTING, [ALEX, PRIYA])).not.toBe(
+      conversationKey(LISTING, [ALEX, SAM]),
+    );
+  });
+
+  it("separates the same pair talking about two different listings", () => {
+    const other = toEntityId("507f1f77bcf86cd7994390bb");
+    expect(conversationKey(LISTING, [ALEX, PRIYA])).not.toBe(
+      conversationKey(other, [ALEX, PRIYA]),
+    );
   });
 });

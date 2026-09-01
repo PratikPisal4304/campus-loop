@@ -49,7 +49,9 @@ const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
 if (isProduction && !isBuildPhase) {
   const missing = PRODUCTION_REQUIRED.filter((key) => env[key].length === 0);
   if (missing.length > 0) {
-    throw new ConfigurationError(`Missing required production environment: ${missing.join(", ")}`);
+    throw new ConfigurationError(
+      `Missing required production environment: ${missing.join(", ")}`,
+    );
   }
 }
 

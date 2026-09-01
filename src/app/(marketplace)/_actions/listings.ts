@@ -32,7 +32,11 @@ const imageSchema = z.object({
  */
 const listingSchema = z
   .object({
-    title: z.string().trim().min(3, "That title is too short.").max(100, "Keep the title under 100 characters."),
+    title: z
+      .string()
+      .trim()
+      .min(3, "That title is too short.")
+      .max(100, "Keep the title under 100 characters."),
     description: z
       .string()
       .trim()
@@ -85,17 +89,28 @@ const listingSchema = z
     }
   });
 
+/**
+ * `formData.get()` returns `null` for a field the form did not render, and Zod's
+ * `.optional()` accepts `undefined` but rejects `null`. The rental period only exists in
+ * the DOM when the mode is "rent", so without this every sale would fail validation on a
+ * field the student was never shown.
+ */
+function field(formData: FormData, name: string): string | undefined {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : undefined;
+}
+
 function parseListingForm(formData: FormData) {
   return listingSchema.safeParse({
-    title: formData.get("title"),
-    description: formData.get("description"),
-    category: formData.get("category"),
-    condition: formData.get("condition"),
-    mode: formData.get("mode"),
-    price: formData.get("price"),
-    rentUnit: formData.get("rentUnit"),
-    pickupArea: formData.get("pickupArea"),
-    images: formData.get("images"),
+    title: field(formData, "title"),
+    description: field(formData, "description"),
+    category: field(formData, "category"),
+    condition: field(formData, "condition"),
+    mode: field(formData, "mode"),
+    price: field(formData, "price"),
+    rentUnit: field(formData, "rentUnit"),
+    pickupArea: field(formData, "pickupArea"),
+    images: field(formData, "images"),
   });
 }
 

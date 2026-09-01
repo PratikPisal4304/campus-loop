@@ -19,7 +19,7 @@ export default async function SavedPage() {
       <DisplayHeading as="h1" size="page" className="mt-3">
         Saved items
       </DisplayHeading>
-      <p className="mt-4 text-[14px] text-fg-muted">
+      <p className="text-fg-muted mt-4 text-[14px]">
         Things you&apos;re keeping an eye on. Message the seller before someone else does.
       </p>
 

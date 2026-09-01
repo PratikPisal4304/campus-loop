@@ -14,6 +14,9 @@ const conversationSchema = new Schema(
         message: "A conversation has exactly two participants.",
       },
     },
+    // Derived scalar: "<listingId>:<sortedIdA>:<sortedIdB>". See the index note below for
+    // why the pair cannot be enforced on `participantIds` itself.
+    pairKey: { type: String, required: true },
     lastMessageAt: { type: Date, required: true, default: Date.now },
     lastMessagePreview: { type: String, default: "" },
     // A Map, not a plain object: unread counts are keyed by user id, and Mongoose only
@@ -26,22 +29,20 @@ const conversationSchema = new Schema(
 /**
  * One thread per (listing, participant pair).
  *
- * The filter is a `$type` check, not `sparse: true`. A sparse index only skips documents
- * where the field is *missing* — an explicit `null` (or a null-ish array element from a
- * half-written document) still gets indexed, and every such row would then collide with
- * every other on the same unique key. `$type` matches only documents whose fields are
- * really an ObjectId and an array, so malformed rows fall out of the index entirely
- * instead of fighting each other for the single null slot.
+ * The index is on the derived `pairKey`, NOT on `{listingId, participantIds}`. An index
+ * over an array field is *multikey*: MongoDB writes one entry per element, so a unique
+ * index on the array enforces one conversation per listing per **person** — the first
+ * buyer to message a seller claims the seller's id, and every later buyer fails with
+ * E11000. Collapsing the sorted pair into a single string is what makes "one thread per
+ * pair" actually expressible.
+ *
+ * The filter is a `$type` check rather than `sparse: true`, because a sparse index only
+ * skips documents where the field is *missing* — an explicit `null` still gets indexed,
+ * and every such row would then collide on the single null slot.
  */
 conversationSchema.index(
-  { listingId: 1, participantIds: 1 },
-  {
-    unique: true,
-    partialFilterExpression: {
-      listingId: { $type: "objectId" },
-      participantIds: { $type: "array" },
-    },
-  },
+  { pairKey: 1 },
+  { unique: true, partialFilterExpression: { pairKey: { $type: "string" } } },
 );
 
 // The inbox query: "my threads, most recent first" — served entirely from this index.

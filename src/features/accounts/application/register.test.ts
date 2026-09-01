@@ -35,7 +35,11 @@ function makeDeps(overrides: Partial<UserRepository> = {}): AccountDeps {
     findByEmail: async () => null,
     findCredentialsByEmail: async () => null,
     emailExists: async () => false,
-    create: async (input: CreateUserInput) => ({ ...alex, name: input.name, email: input.email }),
+    create: async (input: CreateUserInput) => ({
+      ...alex,
+      name: input.name,
+      email: input.email,
+    }),
     updateProfile: async () => null,
     ...overrides,
   };

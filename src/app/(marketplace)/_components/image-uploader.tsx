@@ -101,7 +101,7 @@ export function ImageUploader({ initial = [] }: { initial?: readonly UploadedIma
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-[12px] font-semibold">
-        Add photos <span className="ml-1.5 font-normal text-fg-muted">(optional)</span>
+        Add photos <span className="text-fg-muted ml-1.5 font-normal">(optional)</span>
       </span>
 
       <input type="hidden" name="images" value={JSON.stringify(images)} />
@@ -110,7 +110,7 @@ export function ImageUploader({ initial = [] }: { initial?: readonly UploadedIma
         <ul className="mb-2 grid grid-cols-3 gap-2.5 sm:grid-cols-5">
           {images.map((image) => (
             <li key={image.publicId} className="relative">
-              <div className="relative h-20 overflow-hidden rounded-sm border border-border">
+              <div className="border-border relative h-20 overflow-hidden rounded-sm border">
                 <Image src={image.url} alt="" fill sizes="20vw" className="object-cover" />
               </div>
               <button
@@ -119,7 +119,7 @@ export function ImageUploader({ initial = [] }: { initial?: readonly UploadedIma
                   setImages((current) => current.filter((i) => i.publicId !== image.publicId))
                 }
                 aria-label="Remove this photo"
-                className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-dark text-[11px] text-white"
+                className="bg-dark absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] text-white"
               >
                 ✕
               </button>
@@ -129,12 +129,12 @@ export function ImageUploader({ initial = [] }: { initial?: readonly UploadedIma
       )}
 
       {images.length < MAX_IMAGES && (
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-[5px] border border-dashed border-border bg-surface px-4 py-7 text-center transition-colors hover:border-accent">
+        <label className="border-border bg-surface hover:border-accent flex cursor-pointer flex-col items-center justify-center gap-1 rounded-[5px] border border-dashed px-4 py-7 text-center transition-colors">
           <span aria-hidden="true" className="text-[18px]">
             ＋
           </span>
           <strong className="text-[12px]">{isUploading ? "Uploading…" : "Add photos"}</strong>
-          <small className="text-[10px] text-fg-muted">JPG, PNG or WebP up to 5MB</small>
+          <small className="text-fg-muted text-[10px]">JPG, PNG or WebP up to 5MB</small>
           <input
             ref={inputRef}
             type="file"
@@ -150,12 +150,12 @@ export function ImageUploader({ initial = [] }: { initial?: readonly UploadedIma
       )}
 
       {error && (
-        <p role="alert" className="text-[11px] font-medium text-danger">
+        <p role="alert" className="text-danger text-[11px] font-medium">
           {error}
         </p>
       )}
 
-      <p className="text-[11px] text-fg-muted">
+      <p className="text-fg-muted text-[11px]">
         No photo? Your listing gets a colour tile — that&apos;s fine, but photos get replies
         faster.
       </p>

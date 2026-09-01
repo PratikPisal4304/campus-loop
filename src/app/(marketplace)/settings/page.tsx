@@ -15,16 +15,16 @@ export default async function SettingsPage() {
   if (!profile) notFound();
 
   return (
-    <div className="mx-auto max-w-[720px] px-page py-[55px]">
+    <div className="px-page mx-auto max-w-[720px] py-[55px]">
       <Eyebrow>Your account</Eyebrow>
       <DisplayHeading as="h1" size="page" className="mt-3">
         Settings
       </DisplayHeading>
-      <p className="mt-4 text-[14px] text-fg-muted">
+      <p className="text-fg-muted mt-4 text-[14px]">
         This is what other students see.{" "}
         <Link
           href={`/profile/${profile.id}`}
-          className="font-semibold text-fg underline-offset-4 hover:underline"
+          className="text-fg font-semibold underline-offset-4 hover:underline"
         >
           View your profile
         </Link>
@@ -34,9 +34,9 @@ export default async function SettingsPage() {
         <SettingsForm action={updateProfileAction} profile={profile} />
       </div>
 
-      <section className="mt-14 border-t border-border pt-8">
+      <section className="border-border mt-14 border-t pt-8">
         <Eyebrow className="text-fg-muted">Account</Eyebrow>
-        <p className="mt-2 text-[13px] text-fg-muted">
+        <p className="text-fg-muted mt-2 text-[13px]">
           Signed in as <strong className="text-fg">{user.email}</strong>
         </p>
       </section>

@@ -50,7 +50,8 @@ export function trustScoreFor(user: Pick<User, "ratingSum" | "ratingCount">): Tr
     return { rating: null, ratingCount: user.ratingCount, label: "New" };
   }
   const rating = Math.round((user.ratingSum / user.ratingCount) * 10) / 10;
-  const label = rating >= 4.5 ? "Excellent" : rating >= 4 ? "Trusted" : rating >= 3 ? "Fair" : "Mixed";
+  const label =
+    rating >= 4.5 ? "Excellent" : rating >= 4 ? "Trusted" : rating >= 3 ? "Fair" : "Mixed";
   return { rating, ratingCount: user.ratingCount, label };
 }
 

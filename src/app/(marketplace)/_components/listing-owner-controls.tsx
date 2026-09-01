@@ -19,7 +19,7 @@ export function ListingOwnerControls({
     <div className="flex flex-wrap items-center gap-2">
       <Link
         href={`/listings/${slug}/edit`}
-        className="flex h-9 flex-1 items-center justify-center rounded-sm border border-border text-[12px] font-semibold transition-colors hover:border-accent hover:text-accent"
+        className="border-border hover:border-accent hover:text-accent flex h-9 flex-1 items-center justify-center rounded-sm border text-[12px] font-semibold transition-colors"
       >
         Edit
       </Link>
@@ -29,7 +29,7 @@ export function ListingOwnerControls({
           <input type="hidden" name="listingId" value={listingId} />
           <button
             type="submit"
-            className="h-9 rounded-sm border border-border px-3 text-[12px] font-semibold transition-colors hover:border-fg"
+            className="border-border hover:border-fg h-9 rounded-sm border px-3 text-[12px] font-semibold transition-colors"
           >
             Close
           </button>
@@ -41,14 +41,14 @@ export function ListingOwnerControls({
           <input type="hidden" name="listingId" value={listingId} />
           <button
             type="submit"
-            className="h-9 rounded-sm border border-danger bg-danger px-3 text-[12px] font-semibold text-white"
+            className="border-danger bg-danger h-9 rounded-sm border px-3 text-[12px] font-semibold text-white"
           >
             Really delete
           </button>
           <button
             type="button"
             onClick={() => setConfirming(false)}
-            className="h-9 rounded-sm px-2 text-[12px] text-fg-muted hover:text-fg"
+            className="text-fg-muted hover:text-fg h-9 rounded-sm px-2 text-[12px]"
           >
             Cancel
           </button>
@@ -59,7 +59,7 @@ export function ListingOwnerControls({
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="h-9 rounded-sm border border-danger px-3 text-[12px] font-semibold text-danger transition-colors hover:bg-danger hover:text-white"
+          className="border-danger text-danger hover:bg-danger h-9 rounded-sm border px-3 text-[12px] font-semibold transition-colors hover:text-white"
         >
           Delete
         </button>

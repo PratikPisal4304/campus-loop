@@ -70,9 +70,9 @@ export function Field({
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className="text-[12px] font-semibold text-fg">
+      <label htmlFor={id} className="text-fg text-[12px] font-semibold">
         {label}
-        {!required && <span className="ml-1.5 font-normal text-fg-muted">(optional)</span>}
+        {!required && <span className="text-fg-muted ml-1.5 font-normal">(optional)</span>}
       </label>
 
       <FieldContext.Provider
@@ -88,12 +88,12 @@ export function Field({
       </FieldContext.Provider>
 
       {hint && !error && (
-        <p id={hintId} className="text-[11px] text-fg-muted">
+        <p id={hintId} className="text-fg-muted text-[11px]">
           {hint}
         </p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="text-[11px] font-medium text-danger">
+        <p id={errorId} role="alert" className="text-danger text-[11px] font-medium">
           {error}
         </p>
       )}

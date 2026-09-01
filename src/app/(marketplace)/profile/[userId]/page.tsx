@@ -27,8 +27,8 @@ export default async function ProfilePage(props: { params: Promise<{ userId: str
 
   return (
     <div className="px-page py-[55px]">
-      <section className="flex flex-wrap items-center gap-6 rounded-lg border border-border bg-surface p-8">
-        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-avatar text-[24px] font-bold">
+      <section className="border-border bg-surface flex flex-wrap items-center gap-6 rounded-lg border p-8">
+        <span className="bg-avatar flex h-20 w-20 items-center justify-center rounded-full text-[24px] font-bold">
           {profile.initials}
         </span>
 
@@ -38,19 +38,21 @@ export default async function ProfilePage(props: { params: Promise<{ userId: str
             {profile.name}
           </DisplayHeading>
           {profile.bio && (
-            <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-fg-muted">{profile.bio}</p>
+            <p className="text-fg-muted mt-2 max-w-lg text-[13px] leading-relaxed">
+              {profile.bio}
+            </p>
           )}
           {profile.campusArea && (
-            <p className="mt-2 text-[11px] text-fg-muted">📍 Usually around {profile.campusArea}</p>
+            <p className="text-fg-muted mt-2 text-[11px]">
+              📍 Usually around {profile.campusArea}
+            </p>
           )}
         </div>
 
-        <div className="rounded-md bg-panel-sunk px-6 py-4 text-center">
+        <div className="bg-panel-sunk rounded-md px-6 py-4 text-center">
           <p className="eyebrow text-fg-muted">Trust score</p>
-          <p className="numeral mt-1.5 text-[28px] font-bold">
-            {profile.trust.rating ?? "—"}
-          </p>
-          <p className="mt-0.5 text-[11px] text-fg-muted">
+          <p className="numeral mt-1.5 text-[28px] font-bold">{profile.trust.rating ?? "—"}</p>
+          <p className="text-fg-muted mt-0.5 text-[11px]">
             {profile.trust.label}
             {profile.trust.ratingCount > 0 && ` · ${profile.trust.ratingCount} ratings`}
           </p>

@@ -20,7 +20,7 @@ export default async function EditListingPage(props: { params: Promise<{ slug: s
   if (listing.sellerId !== user.id) redirect(`/listings/${listing.slug}`);
 
   return (
-    <div className="mx-auto max-w-[720px] px-page py-[55px]">
+    <div className="px-page mx-auto max-w-[720px] py-[55px]">
       <Eyebrow>Update your listing</Eyebrow>
       <DisplayHeading as="h1" size="page" className="mt-3">
         Edit item

@@ -1,7 +1,12 @@
 import type { EntityId, Slug } from "@/core/types/branded";
 import type { Listing } from "../domain/listing";
 import type { ListingQuery, SellerStats } from "../domain/ports";
-import { toCardView, toDetailView, type ListingCardView, type ListingDetailView } from "./listing-views";
+import {
+  toCardView,
+  toDetailView,
+  type ListingCardView,
+  type ListingDetailView,
+} from "./listing-views";
 import type { ListingDeps } from "./manage-listings";
 
 export interface ListingResults {

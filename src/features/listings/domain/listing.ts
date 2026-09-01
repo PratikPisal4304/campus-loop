@@ -178,7 +178,10 @@ export function validatePrice(input: PriceInput): readonly PriceViolation[] {
   }
 
   if (input.mode === "rent" && input.rentUnit === null) {
-    violations.push({ field: "rentUnit", message: "Say whether that's per day, week or month." });
+    violations.push({
+      field: "rentUnit",
+      message: "Say whether that's per day, week or month.",
+    });
   }
   if (input.mode !== "rent" && input.rentUnit !== null) {
     violations.push({ field: "rentUnit", message: "Only rentals have a rental period." });
@@ -188,7 +191,10 @@ export function validatePrice(input: PriceInput): readonly PriceViolation[] {
 }
 
 /** Normalises price/rentUnit to what the mode allows, after validation has passed. */
-export function normalisePrice(input: PriceInput): { pricePaise: number; rentUnit: RentUnit | null } {
+export function normalisePrice(input: PriceInput): {
+  pricePaise: number;
+  rentUnit: RentUnit | null;
+} {
   if (priceRuleFor(input.mode) === "forbidden") {
     return { pricePaise: 0, rentUnit: null };
   }

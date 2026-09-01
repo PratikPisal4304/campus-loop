@@ -85,3 +85,20 @@ export function previewOf(body: string): string {
 export function participantKey(a: EntityId, b: EntityId): [EntityId, EntityId] {
   return a <= b ? [a, b] : [b, a];
 }
+
+/**
+ * A single scalar identifying "this listing, these two people".
+ *
+ * The unique index cannot be built on `participantIds` directly. MongoDB indexes an array
+ * field as *multikey* — one index entry per element — so a unique index on
+ * `{listingId, participantIds}` enforces one conversation per listing per **person**, and
+ * the second buyer to message a seller collides with a duplicate-key error on the seller's
+ * id. Flattening the sorted pair into one string makes the index mean what it says.
+ */
+export function conversationKey(
+  listingId: EntityId,
+  participants: readonly [EntityId, EntityId],
+): string {
+  const [first, second] = participantKey(participants[0], participants[1]);
+  return `${listingId}:${first}:${second}`;
+}

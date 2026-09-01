@@ -18,24 +18,27 @@ export default function ForgotPasswordPage() {
         Forgot your password?
       </DisplayHeading>
 
-      <p className="mt-5 text-[13px] leading-[1.8] text-fg-muted">
-        Campus Loop doesn&apos;t send email yet, so there&apos;s no automatic reset link. Contact
-        whoever administers this instance and they can reset it for you.
+      <p className="text-fg-muted mt-5 text-[13px] leading-[1.8]">
+        Campus Loop doesn&apos;t send email yet, so there&apos;s no automatic reset link.
+        Contact whoever administers this instance and they can reset it for you.
       </p>
 
-      <p className="mt-4 rounded-sm bg-panel-sunk p-4 text-[12px] leading-relaxed text-fg-muted">
+      <p className="bg-panel-sunk text-fg-muted mt-4 rounded-sm p-4 text-[12px] leading-relaxed">
         Building this project locally? Every seeded demo account uses the password from
-        <code className="mx-1 font-mono text-fg">SEED_PASSWORD</code>
-        in your <code className="font-mono text-fg">.env.local</code>.
+        <code className="text-fg mx-1 font-mono">SEED_PASSWORD</code>
+        in your <code className="text-fg font-mono">.env.local</code>.
       </p>
 
       <ButtonLink href="/login" variant="accent" size="lg" className="mt-8 w-full">
         Back to log in
       </ButtonLink>
 
-      <p className="mt-6 text-center text-[12px] text-fg-muted">
+      <p className="text-fg-muted mt-6 text-center text-[12px]">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-semibold text-fg underline-offset-4 hover:underline">
+        <Link
+          href="/signup"
+          className="text-fg font-semibold underline-offset-4 hover:underline"
+        >
           Create one
         </Link>
       </p>

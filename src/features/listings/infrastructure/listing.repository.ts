@@ -21,7 +21,9 @@ export class MongoListingRepository implements ListingRepository {
   async findById(id: EntityId): Promise<Listing | null> {
     await connectToDatabase();
     if (!Types.ObjectId.isValid(id)) return null;
-    const doc = await ListingModel.findById(new Types.ObjectId(id)).lean<ListingDocument>().exec();
+    const doc = await ListingModel.findById(new Types.ObjectId(id))
+      .lean<ListingDocument>()
+      .exec();
     return doc ? toListing(doc) : null;
   }
 

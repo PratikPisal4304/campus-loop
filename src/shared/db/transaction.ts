@@ -9,7 +9,9 @@ import { connectToDatabase } from "./connection";
  * Run `work` inside a MongoDB transaction. Requires a replica set — see
  * docker-compose.dev.yml for why that is not optional here.
  */
-export async function withTransaction<T>(work: (session: ClientSession) => Promise<T>): Promise<T> {
+export async function withTransaction<T>(
+  work: (session: ClientSession) => Promise<T>,
+): Promise<T> {
   await connectToDatabase();
   const session = await mongoose.startSession();
   try {

@@ -151,7 +151,7 @@ export function ListingForm({
           </Field>
         ) : (
           <div className="flex items-end">
-            <p className="rounded-sm bg-panel-sunk px-4 py-3 text-[12px] text-fg-muted">
+            <p className="bg-panel-sunk text-fg-muted rounded-sm px-4 py-3 text-[12px]">
               {mode === "free"
                 ? "Free listings have no price."
                 : "Exchanges have no price — say what you want in return in the description."}
@@ -183,7 +183,7 @@ export function ListingForm({
       {state.status === "error" && (
         <p
           role="alert"
-          className="rounded-sm border border-danger/30 bg-danger/8 px-4 py-3 text-[12px] font-medium text-danger"
+          className="border-danger/30 bg-danger/8 text-danger rounded-sm border px-4 py-3 text-[12px] font-medium"
         >
           {state.message}
         </p>

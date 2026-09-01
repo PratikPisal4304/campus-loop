@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <DisplayHeading as="h1" size="page">
         Privacy Policy
       </DisplayHeading>
-      <p className="text-[12px] text-fg-muted">Last updated 1 September 2026</p>
+      <p className="text-fg-muted text-[12px]">Last updated 1 September 2026</p>
 
       <p>
         This explains what Campus Loop stores and why. It is a university project, so the honest
@@ -20,9 +20,9 @@ export default function PrivacyPage() {
       <h2>What we store</h2>
       <p>
         Your name, email address and a <strong>hashed</strong> password — the plain password is
-        never written down anywhere, and a hash cannot be reversed back into it. Beyond that: the
-        listings you publish, the items you save, the messages you send, and an optional bio and
-        campus area if you fill them in.
+        never written down anywhere, and a hash cannot be reversed back into it. Beyond that:
+        the listings you publish, the items you save, the messages you send, and an optional bio
+        and campus area if you fill them in.
       </p>
 
       <h2>Who can see what</h2>
@@ -46,8 +46,8 @@ export default function PrivacyPage() {
 
       <h2>Deleting things</h2>
       <p>
-        Deleting a listing removes it and drops it from everyone&apos;s saved items. To have your
-        account and its data removed, contact whoever runs this instance.
+        Deleting a listing removes it and drops it from everyone&apos;s saved items. To have
+        your account and its data removed, contact whoever runs this instance.
       </p>
     </>
   );

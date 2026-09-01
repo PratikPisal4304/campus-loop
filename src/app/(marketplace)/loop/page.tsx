@@ -24,11 +24,11 @@ function StatTile({
 }) {
   return (
     <div
-      className={`rounded-md border border-border p-5 ${highlight ? "bg-highlight" : "bg-surface"}`}
+      className={`border-border rounded-md border p-5 ${highlight ? "bg-highlight" : "bg-surface"}`}
     >
       <p className="eyebrow text-fg-muted">{caption}</p>
       <p className="numeral mt-2 text-[34px] font-bold">{value}</p>
-      <p className="mt-1 text-[11px] text-fg-muted">{hint}</p>
+      <p className="text-fg-muted mt-1 text-[11px]">{hint}</p>
     </div>
   );
 }
@@ -43,20 +43,25 @@ export default async function LoopPage() {
       <DisplayHeading as="h1" size="page" className="mt-3">
         Your loop, <span className="text-accent">{user.name.split(" ")[0]}.</span>
       </DisplayHeading>
-      <p className="mt-4 text-[14px] text-fg-muted">
+      <p className="text-fg-muted mt-4 text-[14px]">
         Everything you&apos;re buying, renting, selling and exchanging.
       </p>
 
       {/* These were hard-coded zeros in the prototype — nothing ever computed them. */}
       <div className="mt-9 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatTile caption="Items listed" value={stats.listed} hint="live on campus" />
-        <StatTile caption="Items for sale" value={stats.forSale} hint="currently listed" highlight />
+        <StatTile
+          caption="Items for sale"
+          value={stats.forSale}
+          hint="currently listed"
+          highlight
+        />
         <StatTile caption="Items for rent" value={stats.forRent} hint="your rental listings" />
         <StatTile caption="Saved" value={stats.saved} hint="things you're watching" />
       </div>
 
       <div className="mt-10 grid gap-5 lg:grid-cols-[2fr_1fr]">
-        <section className="rounded-md border border-border bg-surface p-6">
+        <section className="border-border bg-surface rounded-md border p-6">
           <div className="flex items-center justify-between">
             <div>
               <Eyebrow className="text-fg-muted">Your items</Eyebrow>
@@ -71,7 +76,11 @@ export default async function LoopPage() {
             <ListingGrid
               listings={listings}
               renderAction={(listing) => (
-                <ListingOwnerControls listingId={listing.id} slug={listing.slug} status={listing.status} />
+                <ListingOwnerControls
+                  listingId={listing.id}
+                  slug={listing.slug}
+                  status={listing.status}
+                />
               )}
               empty={
                 <EmptyState
@@ -85,21 +94,24 @@ export default async function LoopPage() {
           </div>
         </section>
 
-        <aside className="h-fit rounded-md bg-pulse p-7">
+        <aside className="bg-pulse h-fit rounded-md p-7">
           <Eyebrow className="text-fg-muted">Campus pulse</Eyebrow>
           <h2 className="mt-2 text-[29px] leading-[1.1] font-bold tracking-[-0.03em]">
             Your things can help another student.
           </h2>
-          <p className="mt-4 text-[13px] leading-relaxed text-fg-muted">
+          <p className="text-fg-muted mt-4 text-[13px] leading-relaxed">
             Every unused calculator, textbook, lab kit and project component can circulate
             instead of collecting dust.
           </p>
           <ButtonLink href="/listings/new" variant="primary" size="md" className="mt-6">
             List another item ↗
           </ButtonLink>
-          <p className="mt-6 text-[11px] text-fg-muted">
+          <p className="text-fg-muted mt-6 text-[11px]">
             Watching something?{" "}
-            <Link href="/saved" className="font-semibold text-fg underline-offset-4 hover:underline">
+            <Link
+              href="/saved"
+              className="text-fg font-semibold underline-offset-4 hover:underline"
+            >
               See your saved items
             </Link>
           </p>

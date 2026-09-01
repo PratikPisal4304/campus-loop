@@ -53,7 +53,7 @@ export default async function DiscoverPage(props: {
 
   return (
     <>
-      <section className="relative overflow-hidden bg-hero px-page py-[65px]">
+      <section className="bg-hero px-page relative overflow-hidden py-[65px]">
         {/* The prototype's three decorative circles. */}
         <span
           aria-hidden="true"
@@ -61,7 +61,7 @@ export default async function DiscoverPage(props: {
         />
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-24 right-[140px] h-[220px] w-[220px] rounded-full bg-[#f0c777] opacity-75"
+          className="pointer-events-none absolute right-[140px] -bottom-24 h-[220px] w-[220px] rounded-full bg-[#f0c777] opacity-75"
         />
         <span
           aria-hidden="true"
@@ -75,7 +75,7 @@ export default async function DiscoverPage(props: {
             <br />
             <span className="text-accent">should move.</span>
           </DisplayHeading>
-          <p className="mt-6 max-w-xl text-[14px] leading-[1.8] text-fg-muted">
+          <p className="text-fg-muted mt-6 max-w-xl text-[14px] leading-[1.8]">
             Buy what you need. Rent what you need temporarily. Sell what you no longer use.
             Exchange useful things with students around campus.
           </p>
@@ -117,7 +117,7 @@ export default async function DiscoverPage(props: {
       </section>
 
       <section className="px-page pb-[60px]">
-        <div className="flex flex-wrap items-center justify-between gap-6 rounded-lg bg-banner px-8 py-10 text-white">
+        <div className="bg-banner flex flex-wrap items-center justify-between gap-6 rounded-lg px-8 py-10 text-white">
           <div>
             <Eyebrow tone="orange">Have something useful?</Eyebrow>
             <DisplayHeading className="mt-2 text-[32px] tracking-[-0.03em]">

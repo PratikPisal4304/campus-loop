@@ -16,16 +16,16 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-page text-center">
+    <main className="px-page flex min-h-screen flex-col items-center justify-center text-center">
       <p className="eyebrow text-accent">Something broke</p>
       <h1 className="mt-4 text-[clamp(40px,6vw,68px)] leading-[0.95] font-bold tracking-[-0.05em]">
         That didn&apos;t work.
       </h1>
-      <p className="mt-6 max-w-md text-[14px] leading-relaxed text-fg-muted">
+      <p className="text-fg-muted mt-6 max-w-md text-[14px] leading-relaxed">
         Something went wrong on our side. Trying again usually sorts it.
       </p>
       {error.digest && (
-        <p className="numeral mt-3 text-[11px] text-fg-muted">Reference: {error.digest}</p>
+        <p className="numeral text-fg-muted mt-3 text-[11px]">Reference: {error.digest}</p>
       )}
       <Button onClick={reset} variant="accent" size="lg" className="mt-8">
         Try again

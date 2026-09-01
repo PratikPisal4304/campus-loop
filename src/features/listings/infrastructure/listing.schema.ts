@@ -1,6 +1,13 @@
 import "server-only";
 import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
-import { CATEGORIES, CONDITIONS, LISTING_STATUSES, MODES, RENT_UNITS, SWATCHES } from "../domain/listing";
+import {
+  CATEGORIES,
+  CONDITIONS,
+  LISTING_STATUSES,
+  MODES,
+  RENT_UNITS,
+  SWATCHES,
+} from "../domain/listing";
 
 const imageSchema = new Schema(
   {
@@ -36,7 +43,10 @@ const listingSchema = new Schema(
 // Free-text search over the two fields a student actually types into the search box.
 // Titles are weighted far above descriptions so "Arduino" surfaces Arduino kits before
 // it surfaces a textbook that merely mentions one.
-listingSchema.index({ title: "text", description: "text" }, { weights: { title: 10, description: 2 }, name: "listing_text" });
+listingSchema.index(
+  { title: "text", description: "text" },
+  { weights: { title: 10, description: 2 }, name: "listing_text" },
+);
 
 // The Discover page's filter combination, in the order the query narrows.
 listingSchema.index({ status: 1, category: 1, mode: 1, createdAt: -1 });
