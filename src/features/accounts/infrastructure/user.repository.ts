@@ -56,7 +56,7 @@ export class MongoUserRepository implements UserRepository {
     const updated = await UserModel.findByIdAndUpdate(
       new Types.ObjectId(id),
       { name: input.name, bio: input.bio, campusArea: input.campusArea },
-      { new: true },
+      { returnDocument: "after" },
     )
       .lean<UserDocument>()
       .exec();
