@@ -5,6 +5,8 @@ longer use, and exchange or give away useful things with students around campus.
 
 Next.js 16 (App Router) · TypeScript · Postgres/Prisma · Auth.js v5 · Tailwind CSS v4.
 
+**Live:** https://campus-loop-pratikpisal4304s-projects.vercel.app
+
 Deployed on Vercel with a Neon Postgres database.
 
 ---
@@ -51,6 +53,7 @@ and listings fall back to their colour tile; everything else works.
 | `npm run test:arch` | dependency-cruiser architecture boundaries |
 | `npm run e2e` | Playwright end-to-end suite |
 | `npm run format` | Prettier |
+| `npm run db:cleanup-e2e` | Delete throwaway accounts/listings the e2e suite creates |
 
 Run `npm run verify` before every commit.
 
