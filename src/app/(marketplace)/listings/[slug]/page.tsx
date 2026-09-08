@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import type { Slug } from "@/core/types/branded";
 import { getProfile, getSessionUser } from "@/features/accounts";
 import { acceptsEnquiries, getListingBySlug, listActiveSlugs } from "@/features/listings";
+import { ItemIllustration } from "@/components/brand/item-illustration";
 import { Eyebrow } from "@/components/brand/typography";
 import { toEntityId } from "@/core/types/branded";
 import { SaveButton } from "../../_components/save-button";
@@ -61,10 +62,15 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
       {/* The identity block is FIRST in source order so a phone shows the title, price and
           the call to action before the artwork; the explicit columns put it back on the
           right on a wide screen. */}
-      <aside className="h-fit lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1">
+      <aside className="order-2 h-fit lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1">
         <div className="flex flex-wrap items-center gap-2">
           <Eyebrow tone="orange">{listing.categoryLabel}</Eyebrow>
-          <ListingStatusBadge status={listing.status} />
+          <ListingStatusBadge status={listing.status} mode={listing.mode} />
+          {listing.hidden && (
+            <p className="text-danger text-sm">
+              Hidden by an administrator. Only you can view this listing.
+            </p>
+          )}
         </div>
         <h1 className="mt-3 text-[32px] leading-[1.1] font-bold tracking-[-0.035em]">
           {listing.title}
@@ -73,13 +79,13 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
         <p className="numeral mt-5 text-[34px] font-bold">
           {listing.price}
           {listing.priceSuffix && (
-            <span className="text-fg-muted ml-1 text-[12px] font-normal">
+            <span className="text-fg-muted ml-1 text-[14px] font-normal">
               {listing.priceSuffix}
             </span>
           )}
         </p>
 
-        <dl className="border-border mt-6 grid grid-cols-2 gap-4 border-y py-5 text-[12px]">
+        <dl className="border-border mt-6 grid grid-cols-2 gap-4 border-y py-5 text-[14px]">
           <div>
             <dt className="eyebrow text-fg-muted">Condition</dt>
             <dd className="mt-1 font-semibold">{listing.conditionLabel}</dd>
@@ -100,7 +106,7 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
             </span>
             <span>
               <span className="block text-[13px] font-semibold">{seller.name}</span>
-              <span className="text-fg-muted block text-[11px]">
+              <span className="text-fg-muted block text-[12px]">
                 {seller.trust.rating
                   ? `★ ${seller.trust.rating} · ${seller.trust.label}`
                   : "New to Campus Loop"}
@@ -126,9 +132,9 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
           ) : (
             // Offering "Message seller" here would be the app promising something the
             // seller has already ended.
-            <p className="border-border text-fg-muted rounded-sm border border-dashed p-4 text-[12px] leading-relaxed">
+            <p className="border-border text-fg-muted rounded-sm border border-dashed p-4 text-[14px] leading-relaxed">
               {listing.status === "sold"
-                ? "This one has been sold, so it's no longer available."
+                ? "This handoff is complete, so the item is no longer available."
                 : "The seller has closed this listing."}{" "}
               Have a look at what else is on campus.
             </p>
@@ -139,19 +145,26 @@ export default async function ListingDetailPage(props: { params: Promise<{ slug:
           )}
         </div>
 
-        <p className="text-fg-muted mt-6 rounded-sm bg-[#edf1e9] p-3.5 text-[11px] leading-relaxed">
+        <p className="text-fg-muted mt-6 rounded-sm bg-[#edf1e9] p-3.5 text-[12px] leading-relaxed">
           ⓘ Meet in a public spot on campus and check the item before you pay.
         </p>
       </aside>
 
-      <div className="lg:col-start-1 lg:row-start-1">
+      <div className="order-1 lg:col-start-1 lg:row-start-1">
         <div
           className={`relative flex h-[380px] items-end overflow-hidden rounded-lg p-7 ${SWATCH_CLASS[listing.swatch] ?? "bg-swatch-blue"}`}
         >
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-12 -right-12 h-[260px] w-[260px] rounded-full border border-white/40"
-          />
+          {!cover && (
+            <div className="bg-panel-sunk absolute inset-0 flex flex-col items-center justify-center">
+              <ItemIllustration
+                category={listing.category}
+                className="text-accent h-64 w-full"
+              />
+              <p className="text-fg-muted text-xs">
+                Category illustration · Seller hasn’t added a photo
+              </p>
+            </div>
+          )}
           {cover && (
             <Image
               src={cover.url}

@@ -70,10 +70,10 @@ describe("legal transitions", () => {
     if (result.ok) expect(result.value.status).toBe("reserved");
   });
 
-  it("marks a reserved listing sold once the deal happens", async () => {
+  it("requires buyer confirmation before marking a reserved listing sold", async () => {
     const result = await markSold(makeDeps("reserved"), ALEX, LISTING_ID);
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.status).toBe("sold");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("CONFIRMATION_REQUIRED");
   });
 
   it("reopens a listing closed by mistake, keeping its slug", async () => {
@@ -86,7 +86,7 @@ describe("legal transitions", () => {
     }
   });
 
-  it("reopens a sold listing when the buyer never turned up", async () => {
+  it("reopens a completed listing without modifying its handoff history", async () => {
     const result = await reopenListing(makeDeps("sold"), ALEX, LISTING_ID);
     expect(result.ok).toBe(true);
   });
@@ -110,7 +110,7 @@ describe("illegal transitions", () => {
 
   it("treats a repeat of the same move as a no-op, not a failure", async () => {
     const setStatus = vi.fn(async () => listingWith("sold"));
-    const result = await markSold(makeDeps("sold", setStatus), ALEX, LISTING_ID);
+    const result = await reserveListing(makeDeps("reserved", setStatus), ALEX, LISTING_ID);
 
     expect(result.ok).toBe(true);
     expect(setStatus).not.toHaveBeenCalled();

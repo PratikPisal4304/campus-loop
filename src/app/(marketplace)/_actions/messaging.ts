@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+import { dispatchEmails } from "@/shared/email/outbox";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -52,6 +54,7 @@ export async function sendMessageAction(
   // Without this the recipient's badge stays as stale as their last navigation.
   revalidatePath("/", "layout");
 
+  after(dispatchEmails);
   return IDLE_MESSAGE_STATE;
 }
 

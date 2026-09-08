@@ -86,14 +86,14 @@ const STUDENTS: readonly SeedStudent[] = [
   },
   {
     name: "Srushti",
-    email: "srushti@gmail.com",
+    email: "srushti24extc@student.mes.ac.in",
     area: "North Quad",
     bio: "",
     password: "qwerty@12",
   },
   {
     name: "Shraddha",
-    email: "shraddha@gmail.com",
+    email: "shraddha24ecs@student.mes.ac.in",
     area: "North Quad",
     bio: "",
     password: "qwerty@12",
@@ -540,7 +540,7 @@ const REVIEWS: readonly SeedReview[] = [
     stars: 5,
   },
   {
-    rater: "shraddha@gmail.com",
+    rater: "shraddha24ecs@student.mes.ac.in",
     subject: "mei@campus.edu",
     listing: "Borosilicate glassware set",
     stars: 5,
@@ -548,13 +548,13 @@ const REVIEWS: readonly SeedReview[] = [
   },
   {
     rater: "mei@campus.edu",
-    subject: "shraddha@gmail.com",
+    subject: "shraddha24ecs@student.mes.ac.in",
     listing: "Borosilicate glassware set",
     stars: 4,
     comment: "Straightforward buyer, met me at the Science Block on time.",
   },
   {
-    rater: "shraddha@gmail.com",
+    rater: "shraddha24ecs@student.mes.ac.in",
     subject: "fatima@campus.edu",
     listing: "Copic marker set, 36 colours",
     stars: 4,
@@ -566,7 +566,7 @@ const REVIEWS: readonly SeedReview[] = [
     // review printed on her profile, which is exactly the unbacked number this track
     // removed everywhere else.
     rater: "fatima@campus.edu",
-    subject: "shraddha@gmail.com",
+    subject: "shraddha24ecs@student.mes.ac.in",
     listing: "Copic marker set, 36 colours",
     stars: 5,
     comment: "Paid up front and collected the same evening.",
@@ -578,7 +578,7 @@ const REVIEWS: readonly SeedReview[] = [
     stars: 5,
   },
   {
-    rater: "srushti@gmail.com",
+    rater: "srushti24extc@student.mes.ac.in",
     subject: "tom@campus.edu",
     listing: "Cormen — Introduction to Algorithms",
     stars: 5,
@@ -586,7 +586,7 @@ const REVIEWS: readonly SeedReview[] = [
   },
   {
     rater: "tom@campus.edu",
-    subject: "srushti@gmail.com",
+    subject: "srushti24extc@student.mes.ac.in",
     listing: "Cormen — Introduction to Algorithms",
     stars: 5,
     comment: "Said 4pm and was there at 4pm.",
@@ -598,7 +598,7 @@ const REVIEWS: readonly SeedReview[] = [
     stars: 4,
   },
   {
-    rater: "srushti@gmail.com",
+    rater: "srushti24extc@student.mes.ac.in",
     subject: "anika@campus.edu",
     listing: "Casio FX-991ES Plus",
     stars: 4,
@@ -606,7 +606,7 @@ const REVIEWS: readonly SeedReview[] = [
   },
   {
     rater: "anika@campus.edu",
-    subject: "srushti@gmail.com",
+    subject: "srushti24extc@student.mes.ac.in",
     listing: "Casio FX-991ES Plus",
     stars: 5,
   },

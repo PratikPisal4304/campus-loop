@@ -1,8 +1,9 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import type { EntityId, Slug } from "@/core/types/branded";
+import { cancelListingDeals } from "@/features/deals";
 import { prisma } from "@/shared/db/connection";
-import type { Listing, ListingStatus } from "../domain/listing";
+import { canTransitionTo, type Listing, type ListingStatus } from "../domain/listing";
 import { LISTING_PAGE_SIZE, LISTING_PAGE_SIZE_MAX } from "../domain/ports";
 import type {
   CreateListingInput,
@@ -21,12 +22,17 @@ export class PrismaListingRepository implements ListingRepository {
   }
 
   async findBySlug(slug: Slug): Promise<Listing | null> {
-    const row = await prisma.listing.findUnique({ where: { slug } });
+    const row = await prisma.listing.findUnique({
+      where: { slug, seller: { suspendedAt: null } },
+    });
     return row ? toListing(row) : null;
   }
 
   async search(query: ListingQuery): Promise<ListingPage> {
-    const where: Prisma.ListingWhereInput = {};
+    const where: Prisma.ListingWhereInput = {
+      ...(query.includeHidden ? {} : { hiddenAt: null }),
+      seller: { suspendedAt: null },
+    };
 
     // `status: undefined` means "any status" — that is how My Loop shows closed listings
     // alongside active ones. Only default to "active" when the caller said nothing.
@@ -122,20 +128,41 @@ export class PrismaListingRepository implements ListingRepository {
   }
 
   async setStatus(id: EntityId, status: ListingStatus): Promise<Listing | null> {
-    try {
-      const row = await prisma.listing.update({ where: { id }, data: { status } });
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM listings WHERE id = ${id} FOR UPDATE`;
+      const listing = await tx.listing.findUnique({ where: { id } });
+      if (!listing) return null;
+      // Completed deals are created only by the two-party confirmation transaction.
+      if (status === "sold" || !canTransitionTo(listing.status as ListingStatus, status))
+        return null;
+      if (status === "active" || status === "closed") await cancelListingDeals(tx, id);
+      const row = await tx.listing.update({ where: { id }, data: { status } });
       return toListing(row);
-    } catch {
-      return null;
-    }
+    });
   }
 
   async remove(id: EntityId): Promise<void> {
-    try {
-      await prisma.listing.delete({ where: { id } });
-    } catch {
-      // Already gone is the state the caller asked for.
-    }
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM listings WHERE id = ${id} FOR UPDATE`;
+      await cancelListingDeals(tx, id);
+      const subjects = await tx.review.findMany({
+        where: { listingId: id },
+        select: { subjectId: true },
+        distinct: ["subjectId"],
+      });
+      await tx.listing.deleteMany({ where: { id } });
+      for (const { subjectId } of subjects) {
+        const rating = await tx.review.aggregate({
+          where: { subjectId },
+          _sum: { stars: true },
+          _count: true,
+        });
+        await tx.user.updateMany({
+          where: { id: subjectId },
+          data: { ratingSum: rating._sum.stars ?? 0, ratingCount: rating._count },
+        });
+      }
+    });
   }
 
   async statsForSeller(sellerId: EntityId): Promise<SellerStats> {
@@ -143,7 +170,7 @@ export class PrismaListingRepository implements ListingRepository {
     // at once, and they should agree with each other.
     const rows = await prisma.listing.groupBy({
       by: ["mode"],
-      where: { sellerId, status: "active" },
+      where: { sellerId, status: "active", hiddenAt: null, seller: { suspendedAt: null } },
       _count: { _all: true },
     });
 
@@ -158,7 +185,7 @@ export class PrismaListingRepository implements ListingRepository {
 
   async listActiveSlugs(): Promise<readonly Slug[]> {
     const rows = await prisma.listing.findMany({
-      where: { status: "active" },
+      where: { status: "active", hiddenAt: null, seller: { suspendedAt: null } },
       select: { slug: true },
     });
     return rows.map((row) => row.slug as Slug);
@@ -174,4 +201,17 @@ function orderFor(sort: ListingQuery["sort"]): Prisma.ListingOrderByWithRelation
     default:
       return [{ createdAt: "desc" }];
   }
+}
+
+export async function availableSellerId(id: EntityId): Promise<EntityId | null> {
+  const row = await prisma.listing.findFirst({
+    where: {
+      id,
+      hiddenAt: null,
+      seller: { suspendedAt: null },
+      status: { in: ["active", "reserved"] },
+    },
+    select: { sellerId: true },
+  });
+  return row ? (row.sellerId as EntityId) : null;
 }

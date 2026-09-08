@@ -6,6 +6,8 @@ import { publicEnv } from "@/shared/env.public";
 import { safeInternalPath } from "@/shared/safe-path";
 import type { Role } from "../domain/user";
 import { auth } from "./auth";
+import { prisma } from "@/shared/db/connection";
+import { isRole } from "../domain/user";
 
 export interface SessionUser {
   readonly id: EntityId;
@@ -18,11 +20,28 @@ export interface SessionUser {
 export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await auth();
   if (!session?.user?.id) return null;
+  const current = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      suspendedAt: true,
+      sessionVersion: true,
+    },
+  });
+  if (
+    !current ||
+    current.suspendedAt ||
+    current.sessionVersion !== (session.user.sessionVersion ?? 0)
+  )
+    return null;
   return {
     id: toEntityId(session.user.id),
-    name: session.user.name,
-    email: toEmail(session.user.email),
-    role: session.user.role ?? "student",
+    name: current.name,
+    email: toEmail(current.email),
+    role: isRole(current.role) ? current.role : "student",
   };
 }
 
@@ -42,9 +61,8 @@ export async function requireUser(): Promise<SessionUser> {
 /**
  * Assert a signed-in student holding a particular role.
  *
- * For server actions. Roles come off the JWT, which the `session` callback populates from
- * the database at sign-in, so a student promoted to admin picks it up on their next login
- * rather than mid-session.
+ * Roles, suspension and session versions are read from the database on every request,
+ * so a previously issued JWT cannot bypass account suspension or password recovery.
  */
 export async function requireRole(role: Role): Promise<SessionUser> {
   const user = await requireUser();

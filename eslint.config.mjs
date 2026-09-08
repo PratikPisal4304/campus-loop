@@ -19,6 +19,7 @@ const eslintConfig = defineConfig([
 
   globalIgnores([
     ".next/**",
+    ".next-e2e/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
@@ -143,7 +144,11 @@ const eslintConfig = defineConfig([
 
   // Cross-feature imports must target the public barrel, never a deep path.
   {
-    files: ["src/features/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}", "src/components/**/*.{ts,tsx}"],
+    files: [
+      "src/features/**/*.{ts,tsx}",
+      "src/app/**/*.{ts,tsx}",
+      "src/components/**/*.{ts,tsx}",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",

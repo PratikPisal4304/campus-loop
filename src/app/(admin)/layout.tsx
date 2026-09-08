@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <span className="bg-dark flex h-8 w-8 items-center justify-center rounded-full font-mono text-[11px] text-white">
             CL
           </span>
-          Moderation
+          Campus administration
         </Link>
         <p className="text-fg-muted text-[12px]">
           Signed in as <strong className="text-fg">{admin.name}</strong> ·{" "}
@@ -31,7 +31,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </p>
       </header>
 
-      <main className="px-page mx-auto max-w-[900px] py-12">{children}</main>
+      <nav
+        aria-label="Administration"
+        className="border-border px-page flex flex-wrap gap-5 border-b py-4 text-sm font-semibold"
+      >
+        {["overview", "users", "listings", "deals", "reports", "email"].map((section) => (
+          <Link
+            key={section}
+            className="hover:text-accent capitalize"
+            href={section === "overview" ? "/admin" : `/admin/${section}`}
+          >
+            {section}
+          </Link>
+        ))}
+      </nav>
+      <main className="px-page mx-auto max-w-[1440px] py-12">{children}</main>
     </div>
   );
 }

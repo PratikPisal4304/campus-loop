@@ -1,46 +1,31 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { ButtonLink } from "@/components/ui/button";
-import { DisplayHeading, Eyebrow } from "@/components/brand/typography";
-
-export const metadata: Metadata = { title: "Forgot password" };
-
-/**
- * Campus Loop has no email service, so there is no self-service reset to offer. Saying so
- * plainly beats the prototype's approach, which was a link that fired
- * `alert("Password reset can be connected later.")` at the student.
- */
+import { ActionForm } from "@/components/ui/action-form";
+import { requestResetAction } from "../_actions/recovery";
+export const metadata = { title: "Forgot password" };
 export default function ForgotPasswordPage() {
   return (
-    <div className="mx-auto w-full max-w-[420px]">
-      <Eyebrow tone="orange">Account access</Eyebrow>
-      <DisplayHeading as="h1" className="mt-3 text-[34px]">
-        Forgot your password?
-      </DisplayHeading>
-
-      <p className="text-fg-muted mt-5 text-[13px] leading-[1.8]">
-        Campus Loop doesn&apos;t send email yet, so there&apos;s no automatic reset link.
-        Contact whoever administers this instance and they can reset it for you.
+    <div className="mx-auto max-w-md">
+      <p className="eyebrow text-accent">Back in the loop</p>
+      <h1 className="mt-3 text-4xl">Forgot your password?</h1>
+      <p className="text-fg-muted my-5">
+        Enter your account email. We’ll send a link to choose a new password.
       </p>
-
-      <p className="bg-panel-sunk text-fg-muted mt-4 rounded-sm p-4 text-[12px] leading-relaxed">
-        In the meantime you can still browse everything on Campus Loop — you only need an
-        account to save items, list something, or message a seller.
-      </p>
-
-      <ButtonLink href="/login" variant="accent" size="lg" className="mt-8 w-full">
+      <ActionForm action={requestResetAction} label="Send reset link">
+        <label className="block text-sm font-semibold">
+          Email address
+          <input
+            className="form-input mt-2"
+            name="email"
+            type="email"
+            autoComplete="email"
+            maxLength={120}
+            required
+          />
+        </label>
+      </ActionForm>
+      <Link href="/login" className="text-accent mt-6 inline-block text-sm underline">
         Back to log in
-      </ButtonLink>
-
-      <p className="text-fg-muted mt-6 text-center text-[12px]">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="text-fg font-semibold underline-offset-4 hover:underline"
-        >
-          Create one
-        </Link>
-      </p>
+      </Link>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { getSessionUser } from "@/features/accounts";
 import { countUnread } from "@/features/messaging";
-import { MobileNav, Sidebar } from "@/components/brand/sidebar";
+import { MobileNav } from "@/components/brand/sidebar";
 import { SiteFooter } from "@/components/brand/site-footer";
 import { Topbar } from "@/components/brand/topbar";
 import { signOutAction } from "./_actions/account";
@@ -19,13 +19,20 @@ export default async function MarketplaceLayout({ children }: { children: React.
   const isSignedIn = Boolean(user);
 
   return (
-    <div className="lg:pl-sidebar min-h-screen">
-      <Sidebar unreadCount={unread} isSignedIn={isSignedIn} />
+    <div className="min-h-screen">
+      <a
+        href="#main-content"
+        className="bg-surface text-accent sr-only z-[200] p-3 focus:not-sr-only focus:fixed"
+      >
+        Skip to content
+      </a>
       {/* The bottom padding clears the mobile nav; it sits on the column so the footer
           is scrolled clear of the bar too, not just the page content. */}
       <div className="flex min-h-screen flex-col pb-20 lg:pb-0">
-        <Topbar user={user} signOutAction={signOutAction} />
-        <main className="flex-1">{children}</main>
+        <Topbar user={user} signOutAction={signOutAction} unreadCount={unread} />
+        <main id="main-content" className="mx-auto w-full max-w-[1440px] flex-1">
+          {children}
+        </main>
         <SiteFooter />
       </div>
       <MobileNav unreadCount={unread} isSignedIn={isSignedIn} />

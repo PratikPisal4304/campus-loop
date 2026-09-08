@@ -33,6 +33,7 @@ export interface ListingCardView {
   readonly swatch: Listing["swatch"];
   readonly isSaved: boolean;
   readonly status: Listing["status"];
+  readonly hidden?: boolean;
 }
 
 export interface ListingDetailView extends ListingCardView {
@@ -72,6 +73,7 @@ export function toCardView(listing: Listing, isSaved = false): ListingCardView {
     swatch: listing.swatch,
     isSaved,
     status: listing.status,
+    hidden: Boolean(listing.hidden),
   };
 }
 

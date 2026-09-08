@@ -36,6 +36,7 @@ export function toListing(row: ListingRow): Listing {
     swatch: row.swatch as Swatch,
     sellerId: toEntityId(row.sellerId),
     status: row.status as ListingStatus,
+    hidden: Boolean(row.hiddenAt),
     createdAt: row.createdAt,
   };
 }

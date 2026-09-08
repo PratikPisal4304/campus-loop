@@ -20,6 +20,9 @@ const schema = z.object({
 
   AUTH_SECRET: z.string().default(""),
   AUTH_URL: z.string().default("http://localhost:3000"),
+  RESEND_API_KEY: z.string().default(""),
+  EMAIL_FROM: z.string().default("Campus Loop <campus-loop@hanind.in>"),
+  EMAIL_DELIVERY: z.enum(["resend", "disabled"]).default("disabled"),
 
   CLOUDINARY_CLOUD_NAME: z.string().default(""),
   CLOUDINARY_API_KEY: z.string().default(""),

@@ -15,35 +15,43 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("student")
-  bio          String?
-  campusArea   String?
+  id             String               @id @default(cuid())
+  name           String
+  email          String               @unique
+  passwordHash   String
+  role           String               @default("student")
+  bio            String?
+  campusArea     String?
   // Sum and count rather than a stored average: an average cannot be updated
   // incrementally without drifting, and it loses the sample size trust depends on.
-  ratingSum    Int      @default(0)
-  ratingCount  Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  ratingSum      Int                  @default(0)
+  ratingCount    Int                  @default(0)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  suspendedAt    DateTime?
+  sessionVersion Int                  @default(0)
+  messageEmails  Boolean              @default(true)
+  dealEmails     Boolean              @default(true)
+  purchases      Deal[]               @relation("BuyerDeals")
+  sales          Deal[]               @relation("SellerDeals")
+  resetTokens    PasswordResetToken[]
+  emailJobs      EmailJob[]
 
   listings        Listing[]
   savedItems      SavedItem[]
   participantIn   ConversationParticipant[]
   messagesSent    Message[]
-  reviewsWritten  Review[]                 @relation("ReviewsWritten")
-  reviewsReceived Review[]                 @relation("ReviewsReceived")
-  reportsFiled    Report[]                 @relation("ReportsFiled")
-  reportsAgainst  Report[]                 @relation("ReportsAgainst")
+  reviewsWritten  Review[]                  @relation("ReviewsWritten")
+  reviewsReceived Review[]                  @relation("ReviewsReceived")
+  reportsFiled    Report[]                  @relation("ReportsFiled")
+  reportsAgainst  Report[]                  @relation("ReportsAgainst")
 
   @@map("users")
 }
 
 model Listing {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String    @id @default(cuid())
+  slug        String    @unique
   title       String
   description String
   category    String
@@ -51,15 +59,17 @@ model Listing {
   mode        String
   /// Integer paise. Free and exchange listings are normalised to 0 by the domain before
   /// they reach here, so a price on those modes cannot be persisted.
-  pricePaise  Int      @default(0)
+  pricePaise  Int       @default(0)
   rentUnit    String?
   pickupArea  String
   /// Cloudinary references: [{ publicId, url, width, height }].
-  images      Json     @default("[]")
+  images      Json      @default("[]")
   swatch      String
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      String    @default("active")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  hiddenAt    DateTime?
+  deals       Deal[]
 
   sellerId String
   seller   User   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
@@ -204,4 +214,81 @@ model Report {
 
   @@index([status, createdAt])
   @@map("reports")
+}
+
+model Deal {
+  id             String    @id @default(cuid())
+  listingId      String?
+  listing        Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  sellerId       String?
+  seller         User?     @relation("SellerDeals", fields: [sellerId], references: [id], onDelete: SetNull)
+  buyerId        String?
+  buyer          User?     @relation("BuyerDeals", fields: [buyerId], references: [id], onDelete: SetNull)
+  conversationId String
+  title          String
+  mode           String
+  pricePaise     Int
+  rentUnit       String?
+  status         String    @default("pending")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  completedAt    DateTime?
+
+  @@index([buyerId, createdAt])
+  @@index([sellerId, createdAt])
+  @@index([listingId, status])
+  @@map("deals")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@map("password_reset_tokens")
+}
+
+model EmailJob {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventKey   String   @unique
+  kind       String
+  subject    String
+  body       String
+  path       String
+  status     String   @default("queued")
+  attempts   Int      @default(0)
+  providerId String?
+  lastError  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("email_jobs")
+}
+
+model AdminAudit {
+  id        String   @id @default(cuid())
+  actorId   String
+  targetId  String
+  action    String
+  reason    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("admin_audits")
+}
+
+model RateLimit {
+  key       String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+
+  @@map("rate_limits")
 }

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getProfile, requireUser } from "@/features/accounts";
+import { getProfile, requireUserOrRedirect, getEmailPreferences } from "@/features/accounts";
 import { DisplayHeading, Eyebrow } from "@/components/brand/typography";
+import { ActionForm } from "@/components/ui/action-form";
 import { SettingsForm } from "./settings-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DeleteAccountForm } from "./delete-account-form";
@@ -10,14 +11,16 @@ import {
   changePasswordAction,
   deleteAccountAction,
   updateProfileAction,
+  emailPreferencesAction,
 } from "../_actions/account";
 
 export const metadata: Metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
   const profile = await getProfile(user.id);
+  const preferences = await getEmailPreferences(user.id);
   if (!profile) notFound();
 
   return (
@@ -48,6 +51,23 @@ export default async function SettingsPage() {
       </section>
 
       <section className="border-border mt-10 border-t pt-8">
+        <h2 className="mb-4 text-2xl">Email updates</h2>
+        <ActionForm action={emailPreferencesAction} label="Save email preferences">
+          <label className="flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              name="messageEmails"
+              defaultChecked={preferences.messageEmails}
+            />
+            New-message alerts
+          </label>
+          <label className="flex items-center gap-3 text-sm">
+            <input type="checkbox" name="dealEmails" defaultChecked={preferences.dealEmails} />
+            Handoff requests and updates
+          </label>
+        </ActionForm>
+      </section>
+      <section className="border-border mt-10 border-t pt-8">
         <Eyebrow className="text-fg-muted">Security</Eyebrow>
         <DisplayHeading as="h2" size="panel" className="mt-2">
           Change your password
@@ -63,8 +83,9 @@ export default async function SettingsPage() {
           Delete your account
         </DisplayHeading>
         <p className="text-fg-muted mt-3 max-w-lg text-[13px] leading-relaxed">
-          Your listings, saved items, conversations and reviews go with it. There is no way to
-          get them back.
+          Your listings, saved items, conversations and reviews will be removed. Completed
+          handoffs remain in the other student’s history with your name shown as Deleted
+          student.
         </p>
         <DeleteAccountForm action={deleteAccountAction} />
       </section>

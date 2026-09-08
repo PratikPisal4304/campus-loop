@@ -1,214 +1,192 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { requireUser } from "@/features/accounts";
-import {
-  LISTING_STATUSES,
-  LISTING_STATUS_LABELS,
-  getLoopStats,
-  isListingStatus,
-  listMyListings,
-  type ListingCardView,
-  type ListingStatus,
-} from "@/features/listings";
-import { EmptyState } from "@/components/brand/empty-state";
+import { requireUserOrRedirect } from "@/features/accounts";
+import { getLoopStats, listMyListings, isListingStatus } from "@/features/listings";
+import { listDeals } from "@/features/deals";
 import { ListingGrid } from "@/components/brand/listing-card";
-import { DisplayHeading, Eyebrow } from "@/components/brand/typography";
-import { ButtonLink } from "@/components/ui/button";
+import { EmptyState } from "@/components/brand/empty-state";
+import { ActionForm } from "@/components/ui/action-form";
 import {
   ListingActionToast,
   ListingOwnerControls,
 } from "../_components/listing-owner-controls";
-import { cn } from "@/shared/ui/cn";
-
-export const metadata: Metadata = { title: "My Loop" };
+import { respondDealAction } from "../_actions/deals";
+export const metadata = { title: "My Loop" };
 export const dynamic = "force-dynamic";
-
-function StatTile({
-  caption,
-  value,
-  hint,
-  highlight,
+export default async function LoopPage({
+  searchParams,
 }: {
-  caption: string;
-  value: number | string;
-  hint: string;
-  highlight?: boolean;
+  searchParams: Promise<{ tab?: string; page?: string; status?: string }>;
 }) {
+  const user = await requireUserOrRedirect();
+  const params = await searchParams;
+  const tab = params.tab === "buying" ? "buying" : "selling";
+  const page = Math.max(1, Math.min(1000, Math.floor(Number(params.page)) || 1));
+  const [stats, listings, deals] = await Promise.all([
+    getLoopStats(user.id),
+    listMyListings(user.id),
+    listDeals(user.id, tab, page),
+  ]);
+  const filter = params.status && isListingStatus(params.status) ? params.status : null;
+  const shown = filter ? listings.filter((l) => l.status === filter) : listings;
   return (
-    <div
-      className={`border-border rounded-md border p-5 ${highlight ? "bg-highlight" : "bg-surface"}`}
-    >
-      <p className="eyebrow text-fg-muted">{caption}</p>
-      <p className="numeral mt-2 text-[34px] font-bold">{value}</p>
-      <p className="text-fg-muted mt-1 text-[11px]">{hint}</p>
-    </div>
-  );
-}
-
-function countByStatus(listings: readonly ListingCardView[]): Record<ListingStatus, number> {
-  const counts: Record<ListingStatus, number> = { active: 0, reserved: 0, sold: 0, closed: 0 };
-  for (const listing of listings) counts[listing.status] += 1;
-  return counts;
-}
-
-const FILTER_HINTS: Record<ListingStatus, string> = {
-  active: "live on campus",
-  reserved: "held for a buyer",
-  sold: "deals you closed",
-  closed: "withdrawn, reopenable",
-};
-
-export default async function LoopPage(props: { searchParams: Promise<{ status?: string }> }) {
-  const { status } = await props.searchParams;
-  const user = await requireUser();
-  const [stats, listings] = await Promise.all([getLoopStats(user.id), listMyListings(user.id)]);
-
-  const filter = status && isListingStatus(status) ? status : null;
-  const counts = countByStatus(listings);
-  const shown = filter ? listings.filter((listing) => listing.status === filter) : listings;
-
-  // Every number on this page now comes from the same array the grid below renders, so the
-  // tiles and the list can no longer disagree — which they did while the tiles counted only
-  // active listings and the grid showed all of them.
-  const live = listings.filter((listing) => listing.status === "active");
-  const forSale = live.filter((listing) => listing.mode === "sell").length;
-  const forRent = live.filter((listing) => listing.mode === "rent").length;
-
-  return (
-    <div className="px-page py-[55px]">
+    <div className="px-page py-10">
       <ListingActionToast />
-
-      <Eyebrow>Your activity</Eyebrow>
-      <DisplayHeading as="h1" size="page" className="mt-3">
-        Your loop, <span className="text-accent">{user.name.split(" ")[0]}.</span>
-      </DisplayHeading>
-      <p className="text-fg-muted mt-4 text-[14px]">
-        Everything you&apos;re buying, renting, selling and exchanging.
-      </p>
-
-      {/* These were hard-coded zeros in the prototype — nothing ever computed them. */}
-      <div className="mt-9 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatTile
-          caption="Live"
-          value={counts.active}
-          hint={`${forSale} for sale · ${forRent} for rent`}
-          highlight
-        />
-        <StatTile caption="Reserved" value={counts.reserved} hint="held for a buyer" />
-        <StatTile caption="Sold" value={counts.sold} hint="deals you closed" />
-        <StatTile caption="Saved" value={stats.saved} hint="things you're watching" />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow text-accent">Your campus, in circulation</p>
+          <h1 className="mt-3 text-4xl tracking-tight">
+            Your loop, {user.name.split(" ")[0]}.
+          </h1>
+          <p className="text-fg-muted mt-3">
+            Your listings, conversations, and confirmed handoffs in one place.
+          </p>
+        </div>
+        <Link
+          href="/listings/new"
+          className="bg-accent rounded-md px-5 py-3 text-sm font-semibold text-white"
+        >
+          + List an item
+        </Link>
       </div>
-
-      <div className="mt-10 grid gap-5 lg:grid-cols-[2fr_1fr]">
-        <section className="border-border bg-surface rounded-md border p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <Eyebrow className="text-fg-muted">Your items</Eyebrow>
-              <h2 className="mt-1.5 text-[21px] font-bold tracking-tight">Your listings</h2>
-            </div>
-            <ButtonLink href="/listings/new" variant="outline" size="sm">
-              New listing
-            </ButtonLink>
-          </div>
-
-          {listings.length > 0 && (
-            // Links rather than a client filter: the view survives a reload and the back
-            // button, and a student can bookmark "my sold items".
-            <div className="mt-5 flex flex-wrap gap-2">
-              <StatusChip href="/loop" label="All" count={listings.length} active={!filter} />
-              {LISTING_STATUSES.map((value) => (
-                <StatusChip
-                  key={value}
-                  href={`/loop?status=${value}`}
-                  label={LISTING_STATUS_LABELS[value]}
-                  count={counts[value]}
-                  active={filter === value}
-                />
-              ))}
+      <div className="border-border my-7 flex flex-wrap gap-6 border-y py-4 text-sm">
+        <p>
+          <strong className="text-accent text-xl">{stats.listed}</strong> live listings
+        </p>
+        <p>
+          <strong className="text-accent text-xl">{stats.saved}</strong> saved items
+        </p>
+        <Link href="/messages" className="text-accent ml-auto underline underline-offset-4">
+          Open messages →
+        </Link>
+      </div>
+      <nav aria-label="Your activity" className="border-border mb-7 flex gap-7 border-b">
+        {(["selling", "buying"] as const).map((side) => (
+          <Link
+            key={side}
+            href={`/loop?tab=${side}`}
+            aria-current={tab === side ? "page" : undefined}
+            className={`pb-3 text-base font-semibold capitalize ${tab === side ? "border-accent text-accent border-b-2" : "text-fg-muted"}`}
+          >
+            {side}
+          </Link>
+        ))}
+      </nav>
+      <section>
+        <h2 className="text-2xl">
+          {tab === "buying" ? "Things coming your way" : "Your handoff history"}
+        </h2>
+        <p className="text-fg-muted mt-2 text-sm">
+          Pending requests and completed exchanges. A completed handoff is confirmed by both
+          students.
+        </p>
+        <div className="mt-5 space-y-3">
+          {deals.items.length ? (
+            deals.items.map((deal) => (
+              <article
+                key={deal.id}
+                className="border-border bg-surface flex flex-wrap items-start justify-between gap-4 rounded-lg border p-5"
+              >
+                <div>
+                  <p
+                    className={`mb-2 text-xs font-bold tracking-wider uppercase ${deal.status === "pending" ? "text-accent" : "text-fg-muted"}`}
+                  >
+                    {deal.status === "pending" ? "Awaiting buyer confirmation" : deal.status}
+                  </p>
+                  <h3 className="text-lg">{deal.title}</h3>
+                  <p className="text-fg-muted mt-2 text-sm">
+                    {tab === "buying"
+                      ? `Seller: ${deal.sellerName}`
+                      : `Buyer: ${deal.buyerName}`}{" "}
+                    · {deal.mode} · ₹{(deal.pricePaise / 100).toLocaleString("en-IN")}
+                    {deal.rentUnit ? ` / ${deal.rentUnit}` : ""}
+                  </p>
+                  <p className="text-fg-muted mt-1 text-xs">
+                    {deal.createdAt.toLocaleDateString("en-IN")}
+                  </p>
+                  {deal.buyerId && deal.sellerId && deal.listingId && (
+                    <Link
+                      href={`/messages/${deal.conversationId}`}
+                      className="text-accent mt-3 inline-block text-sm underline"
+                    >
+                      View conversation
+                    </Link>
+                  )}
+                </div>
+                {deal.status === "pending" && (
+                  <div className="flex flex-wrap gap-3">
+                    {deal.buyerId === user.id && (
+                      <ActionForm action={respondDealAction} label="I received the item">
+                        <input name="dealId" type="hidden" value={deal.id} />
+                        <input name="decision" type="hidden" value="confirm" />
+                      </ActionForm>
+                    )}
+                    <ActionForm action={respondDealAction} label="Cancel request">
+                      <input name="dealId" type="hidden" value={deal.id} />
+                      <input name="decision" type="hidden" value="cancel" />
+                    </ActionForm>
+                  </div>
+                )}
+              </article>
+            ))
+          ) : (
+            <div className="border-border rounded-lg border border-dashed p-8 text-center">
+              <p className="font-semibold">No handoffs here yet.</p>
+              <p className="text-fg-muted mt-2 text-sm">
+                Arrange a handoff in Messages. The seller requests confirmation and the buyer
+                confirms receipt.
+              </p>
+              <Link
+                href={tab === "buying" ? "/" : "/messages"}
+                className="text-accent mt-4 inline-block text-sm underline"
+              >
+                {tab === "buying" ? "Explore the noticeboard" : "Open your messages"} →
+              </Link>
             </div>
           )}
-
-          <div className="mt-6">
-            <ListingGrid
-              listings={shown}
-              renderAction={(listing) => (
-                <ListingOwnerControls
-                  listingId={listing.id}
-                  slug={listing.slug}
-                  status={listing.status}
-                />
-              )}
-              empty={
-                filter ? (
-                  <EmptyState
-                    icon="📭"
-                    title={`Nothing ${LISTING_STATUS_LABELS[filter].toLowerCase()}`}
-                    description={`You have no listings ${FILTER_HINTS[filter]}.`}
-                    action={{ label: "Show all your listings", href: "/loop" }}
-                  />
-                ) : (
-                  <EmptyState
-                    icon="📦"
-                    title="You haven't listed anything yet"
-                    description="That calculator you finished with last semester is someone else's next one."
-                    action={{ label: "List an item", href: "/listings/new" }}
-                  />
-                )
-              }
-            />
-          </div>
-        </section>
-
-        <aside className="bg-pulse h-fit rounded-md p-7">
-          <Eyebrow className="text-fg-muted">Campus pulse</Eyebrow>
-          <h2 className="mt-2 text-[29px] leading-[1.1] font-bold tracking-[-0.03em]">
-            Your things can help another student.
-          </h2>
-          <p className="text-fg-muted mt-4 text-[13px] leading-relaxed">
-            Every unused calculator, textbook, lab kit and project component can circulate
-            instead of collecting dust.
-          </p>
-          <ButtonLink href="/listings/new" variant="primary" size="md" className="mt-6">
-            List another item ↗
-          </ButtonLink>
-          <p className="text-fg-muted mt-6 text-[11px]">
-            Watching something?{" "}
-            <Link
-              href="/saved"
-              className="text-fg font-semibold underline-offset-4 hover:underline"
-            >
-              See your saved items
+        </div>
+        <nav aria-label="Handoff pages" className="my-5 flex gap-4 text-sm">
+          {page > 1 && (
+            <Link href={`/loop?tab=${tab}&page=${page - 1}`} className="underline">
+              ← Previous
             </Link>
-          </p>
-        </aside>
-      </div>
-    </div>
-  );
-}
-
-function StatusChip({
-  href,
-  label,
-  count,
-  active,
-}: {
-  href: string;
-  label: string;
-  count: number;
-  active: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors",
-        active
-          ? "border-accent bg-accent/10 text-accent"
-          : "border-border text-fg-muted hover:border-accent hover:text-accent",
+          )}
+          {page * 20 < deals.total && (
+            <Link href={`/loop?tab=${tab}&page=${page + 1}`} className="underline">
+              Next →
+            </Link>
+          )}
+        </nav>
+      </section>
+      {tab === "selling" && (
+        <section className="mt-10">
+          <h2 className="text-2xl">Your listings</h2>
+          <div className="my-4 flex flex-wrap gap-3 text-sm">
+            {["all", "active", "reserved", "sold", "closed"].map((status) => (
+              <Link
+                href={status === "all" ? "/loop" : `/loop?status=${status}`}
+                key={status}
+                className={`rounded-full border px-3 py-1.5 capitalize ${(!filter && status === "all") || filter === status ? "border-accent bg-checklist text-accent" : "border-border"}`}
+              >
+                {status === "sold" ? "Completed" : status}
+              </Link>
+            ))}
+          </div>
+          <ListingGrid
+            listings={shown}
+            renderAction={(l) => (
+              <ListingOwnerControls listingId={l.id} slug={l.slug} status={l.status} />
+            )}
+            empty={
+              <EmptyState
+                icon="↻"
+                title="Room for something useful"
+                description="List the things you no longer need and let another student put them to use."
+                action={{ label: "List an item", href: "/listings/new" }}
+              />
+            }
+          />
+        </section>
       )}
-    >
-      {label} <span className="numeral opacity-70">{count}</span>
-    </Link>
+    </div>
   );
 }

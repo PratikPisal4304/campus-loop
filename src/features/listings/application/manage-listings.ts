@@ -141,6 +141,11 @@ async function changeStatus(
   const existing = await deps.listings.findById(listingId);
   if (!existing) return fail("NOT_FOUND", "That listing no longer exists.");
   if (!canManage(existing, actorId)) return fail("FORBIDDEN", refusal);
+  if (next === "sold")
+    return fail(
+      "CONFIRMATION_REQUIRED",
+      "Complete the handoff through buyer confirmation in Messages.",
+    );
 
   // Already there: the caller got the state they asked for, so this is not a failure.
   if (existing.status === next) return ok(toDetailView(existing));

@@ -16,6 +16,7 @@ import type { Role } from "../domain/user";
 declare module "next-auth" {
   interface User {
     role?: Role;
+    sessionVersion?: number;
   }
   interface Session {
     user: {
@@ -23,6 +24,7 @@ declare module "next-auth" {
       name: string;
       email: string;
       role: Role;
+      sessionVersion?: number;
     };
   }
 }
@@ -36,6 +38,7 @@ declare module "@auth/core/jwt" {
   interface JWT {
     uid?: string;
     role?: Role;
+    sessionVersion?: number;
   }
 }
 
@@ -78,6 +81,7 @@ export const authConfig = {
     session({ session, token }) {
       if (token.uid) session.user.id = token.uid;
       if (token.role) session.user.role = token.role;
+      session.user.sessionVersion = token.sessionVersion ?? 0;
       return session;
     },
   },

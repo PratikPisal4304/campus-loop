@@ -20,11 +20,9 @@ const NEXT_MOVES: Record<
 > = {
   active: [
     { status: "reserved", label: "Reserve", done: "Held for your buyer." },
-    { status: "sold", label: "Mark sold", done: "Nice one — marked as sold." },
     { status: "closed", label: "Close", done: "Listing closed." },
   ],
   reserved: [
-    { status: "sold", label: "Mark sold", done: "Nice one — marked as sold." },
     { status: "active", label: "Un-reserve", done: "Back on the market." },
     { status: "closed", label: "Close", done: "Listing closed." },
   ],
@@ -78,6 +76,14 @@ export function ListingOwnerControls({
         Edit
       </Link>
 
+      {(status === "active" || status === "reserved") && (
+        <Link
+          href="/messages"
+          className="text-accent text-sm font-semibold underline underline-offset-4"
+        >
+          Arrange handoff in Messages →
+        </Link>
+      )}
       {NEXT_MOVES[status].map((next) => (
         <button
           key={next.status}
@@ -135,8 +141,10 @@ export function ListingOwnerControls({
 export function ListingStatusBadge({
   status,
   className,
+  mode = "sell",
 }: {
   status: ListingStatus;
+  mode?: string;
   className?: string;
 }) {
   if (status === "active") return null;
@@ -148,7 +156,10 @@ export function ListingStatusBadge({
         className,
       )}
     >
-      {LISTING_STATUS_LABELS[status]}
+      {status === "sold"
+        ? ({ sell: "Sold", rent: "Rented", free: "Given away", exchange: "Exchanged" }[mode] ??
+          "Completed")
+        : LISTING_STATUS_LABELS[status]}
     </span>
   );
 }

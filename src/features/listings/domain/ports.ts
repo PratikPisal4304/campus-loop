@@ -19,6 +19,8 @@ export const LISTING_PAGE_SIZE = 24;
 export const LISTING_PAGE_SIZE_MAX = 60;
 
 export interface ListingQuery {
+  /** Internal owner dashboard only; public query parsing never exposes this flag. */
+  readonly includeHidden?: boolean;
   readonly search?: string;
   readonly category?: Category;
   readonly mode?: Mode;

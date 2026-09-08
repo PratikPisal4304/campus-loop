@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+import { dispatchEmails } from "@/shared/email/outbox";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -16,7 +18,6 @@ import {
   closeListing,
   createListing,
   deleteListing,
-  markSold,
   priceRuleFor,
   reopenListing,
   reserveListing,
@@ -199,6 +200,7 @@ export async function createListingAction(
     };
   }
 
+  after(dispatchEmails);
   revalidatePath("/");
   revalidatePath("/loop");
   // `done` is read by the client toast on the destination — a server action cannot raise
@@ -241,6 +243,7 @@ export async function updateListingAction(
     };
   }
 
+  after(dispatchEmails);
   revalidatePath("/");
   revalidatePath("/loop");
   revalidatePath(`/listings/${result.value.slug}`);
@@ -269,6 +272,7 @@ export async function setListingStatusAction(
   const result = await runStatusChange(user.id, id, parsedStatus.data);
   if (!result.ok) return result.error.message;
 
+  after(dispatchEmails);
   revalidatePath("/");
   revalidatePath("/loop");
   revalidatePath("/saved");
@@ -285,7 +289,10 @@ async function runStatusChange(
     case "reserved":
       return reserveListing(actorId, listingId);
     case "sold":
-      return markSold(actorId, listingId);
+      return {
+        ok: false as const,
+        error: { message: "Request buyer confirmation in Messages to complete a handoff." },
+      };
     case "closed":
       return closeListing(actorId, listingId);
     case "active":
@@ -298,7 +305,9 @@ export async function deleteListingAction(formData: FormData): Promise<void> {
   const listingId = parseId(formData, "listingId");
   if (!listingId) return;
 
-  await deleteListing(user.id, toEntityId(listingId));
+  const removed = await deleteListing(user.id, toEntityId(listingId));
+  if (!removed.ok) throw new Error(removed.error.message);
+  after(dispatchEmails);
   revalidatePath("/");
   revalidatePath("/loop");
   revalidatePath("/saved");

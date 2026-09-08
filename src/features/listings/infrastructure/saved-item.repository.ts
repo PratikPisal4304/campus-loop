@@ -54,7 +54,7 @@ export class PrismaSavedItemRepository implements SavedItemRepository {
 
   async listFor(userId: EntityId): Promise<readonly Listing[]> {
     const rows = await prisma.savedItem.findMany({
-      where: { userId },
+      where: { userId, listing: { hiddenAt: null, seller: { suspendedAt: null } } },
       orderBy: { createdAt: "desc" },
       // One query with the join, rather than fetching ids then listings separately.
       include: { listing: true },
@@ -63,7 +63,9 @@ export class PrismaSavedItemRepository implements SavedItemRepository {
   }
 
   async countFor(userId: EntityId): Promise<number> {
-    return prisma.savedItem.count({ where: { userId } });
+    return prisma.savedItem.count({
+      where: { userId, listing: { hiddenAt: null, seller: { suspendedAt: null } } },
+    });
   }
 
   /**

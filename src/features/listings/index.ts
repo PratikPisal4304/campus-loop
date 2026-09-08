@@ -3,7 +3,10 @@ import type { EntityId, Slug } from "@/core/types/branded";
 import * as queries from "./application/queries";
 import * as manage from "./application/manage-listings";
 import type { ListingQuery } from "./domain/ports";
-import { PrismaListingRepository } from "./infrastructure/listing.repository";
+import {
+  PrismaListingRepository,
+  availableSellerId,
+} from "./infrastructure/listing.repository";
 import { PrismaSavedItemRepository } from "./infrastructure/saved-item.repository";
 
 /**
@@ -31,10 +34,7 @@ export const getListingById = (id: EntityId) => queries.getListingById(deps, id)
  * Who owns this listing? Exposed for the messaging feature's `ListingLookup` port, so it
  * can establish the real seller instead of trusting one supplied by the client.
  */
-export const getListingSellerId = async (id: EntityId): Promise<EntityId | null> => {
-  const listing = await deps.listings.findById(id);
-  return listing?.sellerId ?? null;
-};
+export const getListingSellerId = availableSellerId;
 
 export const listMyListings = (sellerId: EntityId) => queries.listMyListings(deps, sellerId);
 

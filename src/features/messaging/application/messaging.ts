@@ -183,6 +183,7 @@ export async function sendMessage(
    * inbox never surfaces, or a badge pointing at a message that was never stored.
    */
   const message = await deps.runInTransaction(async (uow) => {
+    await deps.conversations.lock(conversation.id, uow);
     const created = await deps.messages.create(
       { conversationId: conversation.id, senderId: input.senderId, body },
       uow,
@@ -299,11 +300,15 @@ export async function openConversation(
     return fail("FORBIDDEN", "You're not part of this conversation.");
   }
 
-  const messages = await deps.messages.listForConversation(conversation.id);
-
-  // Clearing is only ever for the reader: the other side's badge is theirs to clear.
-  await deps.conversations.clearUnread(conversation.id, input.userId);
-  await deps.messages.markRead(conversation.id, input.userId);
+  // Sending and opening take the same lock, so a newly arriving message cannot be
+  // marked read without being included in the returned thread.
+  const messages = await deps.runInTransaction(async (uow) => {
+    await deps.conversations.lock(conversation.id, uow);
+    const rows = await deps.messages.listForConversation(conversation.id, {}, uow);
+    await deps.conversations.clearUnread(conversation.id, input.userId, uow);
+    await deps.messages.markRead(conversation.id, input.userId, uow);
+    return rows;
+  });
 
   // The view reflects the state *after* reading, so the badge does not flash on load.
   const [row] = await resolveRows(deps, [

@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import {
   CATEGORIES,
-  CATEGORY_ICONS,
   CATEGORY_LABELS,
   CONDITIONS,
   CONDITION_LABELS,
@@ -112,7 +111,7 @@ export function DiscoverControls({
         }}
         className="flex flex-wrap items-center gap-3"
       >
-        <div className="border-border flex h-[50px] w-full max-w-[470px] items-center gap-2 rounded-[5px] border bg-white px-4">
+        <div className="border-border flex h-[50px] max-w-[720px] min-w-0 flex-1 items-center gap-2 rounded-[5px] border bg-white px-4">
           <span aria-hidden="true" className="text-fg-muted">
             ⌕
           </span>
@@ -128,7 +127,7 @@ export function DiscoverControls({
             onChange={(event) => setQuery(event.target.value)}
             placeholder='Search "calculator", "textbook", "Arduino"...'
             autoComplete="off"
-            className="placeholder:text-fg-muted/70 flex-1 bg-transparent text-[13px] outline-none [&::-webkit-search-cancel-button]:appearance-none"
+            className="placeholder:text-fg-muted/70 min-w-0 flex-1 bg-transparent text-[15px] outline-none [&::-webkit-search-cancel-button]:appearance-none"
           />
           {query && (
             <button
@@ -143,8 +142,10 @@ export function DiscoverControls({
               <span aria-hidden="true">✕</span>
             </button>
           )}
-          <button type="submit" aria-label="Search" className="text-[18px]">
-            <span aria-hidden="true">🔍</span>
+          <button type="submit" aria-label="Search" className="text-accent text-sm font-bold">
+            <span>
+              <span className="hidden sm:inline">Search </span>→
+            </span>
           </button>
         </div>
 
@@ -242,7 +243,7 @@ export function DiscoverControls({
       <div
         role="group"
         aria-label="Filter by listing type"
-        className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5"
+        className="border-border no-scrollbar mt-5 flex gap-2 overflow-x-auto border-b pb-3"
       >
         {MODE_CHIPS.map((chip) => (
           <button
@@ -251,24 +252,20 @@ export function DiscoverControls({
             onClick={() => apply({ mode: chip.value })}
             aria-pressed={activeMode === chip.value}
             className={cn(
-              "flex flex-col items-start gap-0.5 rounded-md border p-3.5 text-left transition-all duration-200 hover:-translate-y-0.5",
+              "flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-left transition-colors",
               activeMode === chip.value
-                ? "border-accent bg-[#fff8f3]"
+                ? "border-accent bg-checklist text-accent"
                 : "border-border bg-surface hover:border-accent/40",
             )}
           >
-            <span aria-hidden="true" className="text-[16px]">
-              {chip.icon}
-            </span>
             <strong className="text-[13px]">{chip.label}</strong>
-            <small className="text-fg-muted text-[10px]">{chip.hint}</small>
           </button>
         ))}
       </div>
 
-      <div className="mt-8">
+      <div className="mt-5">
         <h2 className="eyebrow text-fg-muted mb-2.5">Category</h2>
-        <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-4 xl:grid-cols-8">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
           {CATEGORIES.map((category) => (
             <button
               key={category}
@@ -276,16 +273,13 @@ export function DiscoverControls({
               onClick={() => apply({ category: activeCategory === category ? "" : category })}
               aria-pressed={activeCategory === category}
               className={cn(
-                "flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-md border p-2 text-center transition-all duration-200 hover:-translate-y-0.5",
+                "shrink-0 rounded-md border px-3 py-2 text-center transition-colors",
                 activeCategory === category
-                  ? "border-accent bg-[#fff8f3]"
+                  ? "border-accent bg-checklist text-accent"
                   : "border-border bg-surface hover:border-accent/40",
               )}
             >
-              <span aria-hidden="true" className="text-[20px]">
-                {CATEGORY_ICONS[category]}
-              </span>
-              <span className="text-[10px] leading-tight font-semibold">
+              <span className="text-[12px] leading-tight font-medium">
                 {CATEGORY_LABELS[category]}
               </span>
             </button>
@@ -293,7 +287,7 @@ export function DiscoverControls({
         </div>
       </div>
 
-      <p className="eyebrow text-fg-muted mt-8" aria-live="polite">
+      <p className="eyebrow text-fg-muted mt-6" aria-live="polite">
         {total === 0
           ? "No items"
           : `Showing ${rangeStart}–${rangeEnd} of ${total} ${total === 1 ? "item" : "items"}`}

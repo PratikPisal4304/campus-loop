@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { isEntityId, toEntityId } from "@/core/types/branded";
+import { isEntityId } from "@/core/types/branded";
 import { requireRole } from "@/features/accounts";
-import { REPORT_OUTCOMES, resolveReport } from "@/features/moderation";
+import { manageRecord } from "@/features/administration";
+import { REPORT_OUTCOMES } from "@/features/moderation";
 
 const resolveSchema = z.object({
   reportId: z.string().trim().refine(isEntityId, "Unknown report."),
@@ -19,11 +20,11 @@ const resolveSchema = z.object({
  * action, which is the only thing standing between a student and the moderation queue.
  */
 export async function resolveReportAction(formData: FormData): Promise<void> {
-  await requireRole("admin");
+  const actor = await requireRole("admin");
 
   const parsed = resolveSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
 
-  await resolveReport(toEntityId(parsed.data.reportId), parsed.data.outcome);
+  await manageRecord(actor.id, { action: parsed.data.outcome === "reviewed" ? "review-report" : "dismiss-report", targetId: parsed.data.reportId, reason: "Resolved from moderation queue" });
   revalidatePath("/admin");
 }

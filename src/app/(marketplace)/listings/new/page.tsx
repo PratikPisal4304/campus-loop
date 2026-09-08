@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireUser } from "@/features/accounts";
+import { requireUserOrRedirect } from "@/features/accounts";
 import { DisplayHeading, Eyebrow } from "@/components/brand/typography";
 import { ListingForm } from "../../_components/listing-form";
 import { createListingAction } from "../../_actions/listings";
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "List an item" };
 export default async function NewListingPage() {
   // The proxy already gates this route, but a layout-level guard is what makes the page
   // itself safe to reason about — and it gives us the user for free.
-  await requireUser();
+  await requireUserOrRedirect();
 
   return (
     <div className="px-page mx-auto grid max-w-[1100px] gap-14 py-[55px] lg:grid-cols-[1.5fr_0.7fr]">

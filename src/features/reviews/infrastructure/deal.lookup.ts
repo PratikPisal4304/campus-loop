@@ -17,15 +17,13 @@ export class PrismaDealLookup implements DealLookup {
   async wereCounterparties(listingId: EntityId, a: EntityId, b: EntityId): Promise<boolean> {
     if (a === b) return false;
 
-    const found = await prisma.conversation.findFirst({
+    const found = await prisma.deal.findFirst({
       where: {
         listingId,
-        // Two `some` clauses, not one with an `in`: a single clause is satisfied by one
-        // participant matching either id, which would let anyone who ever messaged the
-        // seller rate any *other* student on that listing.
-        AND: [
-          { participants: { some: { userId: a } } },
-          { participants: { some: { userId: b } } },
+        status: "completed",
+        OR: [
+          { buyerId: a, sellerId: b },
+          { buyerId: b, sellerId: a },
         ],
       },
       select: { id: true },
@@ -36,24 +34,25 @@ export class PrismaDealLookup implements DealLookup {
   async sharedDeals(a: EntityId, b: EntityId): Promise<readonly Deal[]> {
     if (a === b) return [];
 
-    const rows = await prisma.conversation.findMany({
+    const rows = await prisma.deal.findMany({
       where: {
-        AND: [
-          { participants: { some: { userId: a } } },
-          { participants: { some: { userId: b } } },
+        status: "completed",
+        listingId: { not: null },
+        OR: [
+          { buyerId: a, sellerId: b },
+          { buyerId: b, sellerId: a },
         ],
       },
-      orderBy: { lastMessageAt: "desc" },
-      select: { listing: { select: { id: true, title: true } } },
+      orderBy: { createdAt: "desc" },
+      select: { listingId: true, title: true },
     });
-
     // Two threads about one listing should not offer the same deal twice.
     const seen = new Set<string>();
     const deals: Deal[] = [];
     for (const row of rows) {
-      if (seen.has(row.listing.id)) continue;
-      seen.add(row.listing.id);
-      deals.push({ listingId: toEntityId(row.listing.id), listingTitle: row.listing.title });
+      if (!row.listingId || seen.has(row.listingId)) continue;
+      seen.add(row.listingId);
+      deals.push({ listingId: toEntityId(row.listingId), listingTitle: row.title });
     }
     return deals;
   }

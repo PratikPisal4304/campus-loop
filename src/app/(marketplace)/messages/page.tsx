@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireUser } from "@/features/accounts";
+import { requireUserOrRedirect } from "@/features/accounts";
 import { countUnread, listInbox } from "@/features/messaging";
 import { DisplayHeading, Eyebrow } from "@/components/brand/typography";
 import { ButtonLink } from "@/components/ui/button";
@@ -15,7 +15,7 @@ export default async function MessagesPage(props: {
   searchParams: Promise<{ before?: string }>;
 }) {
   const { before } = await props.searchParams;
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
 
   // A malformed cursor means "start from the top" rather than a 500 — it only ever
   // arrives from a link this page wrote, so a bad one is a bookmark, not an attack.

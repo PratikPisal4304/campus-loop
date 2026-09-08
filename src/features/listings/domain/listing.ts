@@ -168,6 +168,7 @@ export interface Listing {
   readonly swatch: Swatch;
   readonly sellerId: EntityId;
   readonly status: ListingStatus;
+  readonly hidden?: boolean;
   readonly createdAt: Date;
 }
 

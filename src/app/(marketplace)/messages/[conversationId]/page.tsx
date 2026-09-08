@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { toEntityId } from "@/core/types/branded";
-import { requireUser } from "@/features/accounts";
+import { requireUserOrRedirect } from "@/features/accounts";
 import {
   MAX_MESSAGE_LENGTH,
   countUnread,
@@ -17,6 +17,7 @@ import { MessageComposer } from "../_components/message-composer";
 import { MessageScroller } from "../_components/message-scroller";
 import { RelativeTime } from "../_components/relative-time";
 import { ThreadRefresher } from "../_components/thread-refresher";
+import { DealPanel } from "../../_components/deal-panel";
 import { UnreadTitle } from "../_components/unread-title";
 
 /**
@@ -30,7 +31,7 @@ export async function generateMetadata(props: {
   params: Promise<{ conversationId: string }>;
 }): Promise<Metadata> {
   const { conversationId } = await props.params;
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
   const header = await getConversationHeader({
     conversationId: toEntityId(conversationId),
     userId: user.id,
@@ -47,7 +48,7 @@ export default async function ConversationPage(props: {
   params: Promise<{ conversationId: string }>;
 }) {
   const { conversationId } = await props.params;
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
 
   const opened = await openConversation({
     conversationId: toEntityId(conversationId),
@@ -96,7 +97,7 @@ export default async function ConversationPage(props: {
           scrolls, so the composer stays on screen no matter how long the thread gets.
           It used to grow with the history and push the composer below the fold.
         */}
-        <div className="flex h-[min(640px,calc(100svh-180px))] min-h-[480px] flex-col">
+        <div className="flex h-[min(850px,calc(100svh-140px))] min-h-[620px] flex-col">
           <header className="border-border flex shrink-0 items-center gap-3 border-b px-[22px] py-[18px]">
             <span
               aria-hidden="true"
@@ -130,6 +131,7 @@ export default async function ConversationPage(props: {
             </div>
           </header>
 
+          <DealPanel userId={user.id} conversationId={conversationId} />
           <p className="bg-checklist/70 text-fg-muted m-5 shrink-0 rounded-sm p-2.5 text-[11px] leading-relaxed">
             <strong className="font-bold">Stay safe:</strong> meet in a public spot on campus,
             check the item before you pay, and keep the conversation here.
@@ -146,14 +148,14 @@ export default async function ConversationPage(props: {
                   <li
                     key={message.id}
                     className={cn(
-                      "mx-5 my-2 flex max-w-[60%] flex-col gap-1 rounded-lg px-[15px] py-3",
+                      "mx-5 my-2 flex max-w-[85%] flex-col gap-1 rounded-lg px-[15px] py-3 sm:max-w-[70%]",
                       // `mine` is decided server-side, so the bubble never compares ids here.
                       message.mine
                         ? "bg-dark self-end text-white"
                         : "bg-panel-sunk text-fg self-start",
                     )}
                   >
-                    <span className="text-[11px] leading-[1.5] whitespace-pre-wrap">
+                    <span className="text-[14px] leading-[1.6] whitespace-pre-wrap">
                       {message.body}
                     </span>
                     <RelativeTime

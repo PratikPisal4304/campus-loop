@@ -61,7 +61,7 @@ const REFUSALS: Record<ReviewRefusal, { code: string; message: string }> = {
   NOT_A_COUNTERPARTY: {
     code: "NOT_A_COUNTERPARTY",
     message:
-      "You can only rate someone you've dealt with — message them about a listing first.",
+      "You can only rate someone you've dealt with — complete a confirmed handoff first.",
   },
   ALREADY_REVIEWED: {
     code: "ALREADY_REVIEWED",

@@ -2,7 +2,6 @@ import "server-only";
 import type { Message as MessageRow } from "@prisma/client";
 import type { UnitOfWork } from "@/core/domain/unit-of-work";
 import { toEntityId, type EntityId } from "@/core/types/branded";
-import { prisma } from "@/shared/db/connection";
 import { clientFrom } from "@/shared/db/transaction";
 import type { Message } from "../domain/conversation";
 import type {
@@ -17,10 +16,11 @@ export class PrismaMessageRepository implements MessageRepository {
   async listForConversation(
     conversationId: EntityId,
     options: ListMessagesOptions = {},
+    uow?: UnitOfWork,
   ): Promise<readonly Message[]> {
     // Queried newest-first so a limit takes the most recent page rather than the oldest,
     // then reversed into the order a thread is actually read in.
-    const rows = await prisma.message.findMany({
+    const rows = await clientFrom(uow).message.findMany({
       where: {
         conversationId,
         ...(options.before ? { createdAt: { lt: options.before } } : {}),
@@ -42,8 +42,12 @@ export class PrismaMessageRepository implements MessageRepository {
     return toDomain(row);
   }
 
-  async markRead(conversationId: EntityId, readerId: EntityId): Promise<void> {
-    await prisma.message.updateMany({
+  async markRead(
+    conversationId: EntityId,
+    readerId: EntityId,
+    uow?: UnitOfWork,
+  ): Promise<void> {
+    await clientFrom(uow).message.updateMany({
       // Only the other person's messages, and only the ones not already stamped.
       where: { conversationId, senderId: { not: readerId }, readAt: null },
       data: { readAt: new Date() },

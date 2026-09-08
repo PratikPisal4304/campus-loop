@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
  * Regressions for the Phase 0 security fixes. Each of these passed silently before the
  * fix, which is why they are here rather than left to the unit tests.
  */
-const SEEDED = { email: "srushti@gmail.com", password: "qwerty@12" };
+const SEEDED = { email: "srushti24extc@student.mes.ac.in", password: "qwerty@12" };
 
 async function logIn(page: Page, email = SEEDED.email) {
   await page.getByLabel("Email address").fill(email);
@@ -26,7 +26,7 @@ test("an off-site redirect target is refused", async ({ page }) => {
   // Browsers normalise the backslash, so `/\evil.example` used to escape the
   // "starts with one slash" check and became a protocol-relative off-site redirect.
   await page.goto(`/login?next=${encodeURIComponent("/\\evil.example")}`);
-  await logIn(page, "shraddha@gmail.com");
+  await logIn(page, "shraddha24ecs@student.mes.ac.in");
 
   await expect(page).toHaveURL(/^https?:\/\/[^/]+\/$/, { timeout: 20_000 });
 });

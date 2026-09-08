@@ -11,7 +11,7 @@ interface PanelCopy {
 }
 
 const LOGIN: PanelCopy = {
-  eyebrow: "✦ Student marketplace",
+  eyebrow: "A campus full of possibilities",
   headline: ["Welcome", "back."],
   body: "Your campus is always in circulation. Buy, rent, sell and exchange with students around you.",
   features: [
@@ -26,17 +26,17 @@ const LOGIN: PanelCopy = {
 };
 
 const SIGNUP: PanelCopy = {
-  eyebrow: "✦ Join the loop",
+  eyebrow: "Your next semester starts here",
   headline: ["Your campus.", "In circulation."],
   body: "Create your account and start buying, renting, selling and exchanging useful things with students around campus.",
   features: [
     {
-      glyph: "💰",
+      glyph: "↗",
       title: "Sell what you don't need",
       detail: "Turn unused stuff into extra money.",
     },
     {
-      glyph: "🔄",
+      glyph: "↻",
       title: "Rent instead of buying",
       detail: "Save money on things you need temporarily.",
     },
@@ -57,7 +57,7 @@ export function WelcomePanel() {
     <div className="relative my-auto max-w-md">
       <Eyebrow tone="orange">{copy.eyebrow}</Eyebrow>
 
-      <DisplayHeading as="h1" size="page" className="mt-4">
+      <DisplayHeading as="h2" size="page" className="mt-4">
         {copy.headline[0]}
         <br />
         <span className="text-accent">{copy.headline[1]}</span>

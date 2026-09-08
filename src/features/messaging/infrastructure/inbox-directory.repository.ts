@@ -1,6 +1,6 @@
 import "server-only";
 import type { EntityId } from "@/core/types/branded";
-import { initialsFor } from "@/features/accounts";
+import { initialsFor } from "@/features/accounts/client";
 import { prisma } from "@/shared/db/connection";
 import type { InboxDirectory, ListingSummary, ParticipantSummary } from "../domain/ports";
 

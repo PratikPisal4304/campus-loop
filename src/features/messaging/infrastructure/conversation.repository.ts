@@ -2,6 +2,7 @@ import "server-only";
 import type { Conversation as ConversationRow, ConversationParticipant } from "@prisma/client";
 import type { UnitOfWork } from "@/core/domain/unit-of-work";
 import { toEntityId, type EntityId } from "@/core/types/branded";
+import { queueEmail } from "@/shared/email/outbox";
 import { prisma } from "@/shared/db/connection";
 import { clientFrom } from "@/shared/db/transaction";
 import { conversationKey, participantKey, type Conversation } from "../domain/conversation";
@@ -20,6 +21,9 @@ const withParticipants = { participants: true } as const;
 const DEFAULT_INBOX_LIMIT = 20;
 
 export class PrismaConversationRepository implements ConversationRepository {
+  async lock(id: EntityId, uow: UnitOfWork): Promise<void> {
+    await clientFrom(uow).$queryRaw`SELECT id FROM conversations WHERE id = ${id} FOR UPDATE`;
+  }
   async findById(id: EntityId): Promise<Conversation | null> {
     const row = await prisma.conversation.findUnique({
       where: { id },
@@ -97,16 +101,29 @@ export class PrismaConversationRepository implements ConversationRepository {
     });
     // Scoped to the recipient's own participant row, so incrementing one side cannot
     // touch the other's badge.
-    await client.conversationParticipant.update({
+    const recipient = await client.conversationParticipant.update({
       where: {
         conversationId_userId: { conversationId, userId: input.incrementUnreadFor },
       },
       data: { unreadCount: { increment: 1 } },
     });
+    if (recipient.unreadCount === 1)
+      await queueEmail(client, {
+        userId: input.incrementUnreadFor,
+        eventKey: `message/${conversationId}/${input.incrementUnreadFor}/${input.at.getTime()}`,
+        kind: "message",
+        subject: "You have a new campus message",
+        body: "A student has sent you a message. Open your conversation to read it and reply.",
+        path: `/messages/${conversationId}`,
+      });
   }
 
-  async clearUnread(conversationId: EntityId, userId: EntityId): Promise<void> {
-    await prisma.conversationParticipant.updateMany({
+  async clearUnread(
+    conversationId: EntityId,
+    userId: EntityId,
+    uow?: UnitOfWork,
+  ): Promise<void> {
+    await clientFrom(uow).conversationParticipant.updateMany({
       // `unreadCount: { not: 0 }` makes an already-read thread a no-op rather than a
       // rewritten row: the thread route re-runs on every 12s poll, and Postgres writes a
       // new tuple even when the value is unchanged. Mirrors `markRead`'s `readAt: null`.

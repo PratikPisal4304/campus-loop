@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { Slug } from "@/core/types/branded";
-import { requireUser } from "@/features/accounts";
+import { requireUserOrRedirect } from "@/features/accounts";
 import { getListingBySlug } from "@/features/listings";
 import { DisplayHeading, Eyebrow } from "@/components/brand/typography";
 import { ListingForm } from "../../../_components/listing-form";
@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Edit listing" };
 
 export default async function EditListingPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = await props.params;
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
   const listing = await getListingBySlug(slug as Slug, null);
 
   if (!listing) notFound();

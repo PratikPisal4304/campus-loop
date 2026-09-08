@@ -7,6 +7,7 @@ import { verifyCredentials } from "../application/register";
 import { authConfig } from "./auth.config";
 import { BcryptPasswordHasher } from "./bcrypt-hasher";
 import { PrismaUserRepository } from "./user.repository";
+import { prisma } from "@/shared/db/connection";
 
 const credentialsSchema = z.object({
   email: z.email().max(120),
@@ -38,7 +39,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!result.ok) return null;
 
         const user = result.value;
-        return { id: user.id, name: user.name, email: user.email, role: user.role };
+        const current = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { suspendedAt: true, sessionVersion: true },
+        });
+        if (!current || current.suspendedAt) return null;
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          sessionVersion: current.sessionVersion,
+        };
       },
     }),
   ],
@@ -48,6 +60,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user?.id) {
         token.uid = user.id;
         token.role = user.role ?? "student";
+        token.sessionVersion = user.sessionVersion ?? 0;
       }
       return token;
     },

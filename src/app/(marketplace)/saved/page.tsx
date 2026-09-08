@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireUser } from "@/features/accounts";
+import { requireUserOrRedirect } from "@/features/accounts";
 import { acceptsEnquiries, listSavedListings } from "@/features/listings";
 import { EmptyState } from "@/components/brand/empty-state";
 import { ListingGrid } from "@/components/brand/listing-card";
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Saved" };
 export const dynamic = "force-dynamic";
 
 export default async function SavedPage() {
-  const user = await requireUser();
+  const user = await requireUserOrRedirect();
   const listings = await listSavedListings(user.id);
 
   // A sold or closed item under "message the seller before someone else does" is the app

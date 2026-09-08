@@ -1,3 +1,4 @@
+import { ItemIllustration } from "@/components/brand/item-illustration";
 import { Fragment, Suspense } from "react";
 import Link from "next/link";
 import { getSessionUser } from "@/features/accounts";
@@ -167,36 +168,49 @@ export default async function DiscoverPage(props: { searchParams: Promise<Search
 
   return (
     <>
-      <section className="bg-hero px-page relative overflow-hidden py-[65px]">
-        {/* The prototype's three decorative circles. */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-20 -right-20 h-[370px] w-[370px] rounded-full bg-[#c8d3c4] opacity-75"
-        />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute right-[140px] -bottom-24 h-[220px] w-[220px] rounded-full bg-[#f0c777] opacity-75"
-        />
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute top-[70px] right-[330px] h-[110px] w-[110px] rounded-full bg-[#dd8361] opacity-75"
-        />
-
-        <div className="relative max-w-3xl">
-          <Eyebrow tone="orange">✧ Student marketplace / education</Eyebrow>
-          <DisplayHeading as="h1" size="hero" className="mt-4">
-            Good stuff
+      <section className="px-page grid gap-8 pt-7 pb-5 md:grid-cols-[1.4fr_1fr] md:items-center md:pt-9">
+        <div>
+          <Eyebrow>The campus noticeboard / Buy · Rent · Exchange</Eyebrow>
+          <h1 className="mt-5 max-w-2xl text-[clamp(34px,4.2vw,58px)] leading-[1.02] tracking-[-.045em]">
+            Good things deserve
             <br />
-            <span className="text-accent">should move.</span>
-          </DisplayHeading>
-          <p className="text-fg-muted mt-6 max-w-xl text-[14px] leading-[1.8]">
-            Buy what you need. Rent what you need temporarily. Sell what you no longer use.
-            Exchange useful things with students around campus.
+            <span className="text-accent">another semester.</span>
+          </h1>
+          <p className="text-fg-muted mt-5 max-w-lg text-base leading-relaxed">
+            The textbook you need. The calculator they’ve finished with. Find it right here, on
+            your campus.
           </p>
+          <div className="mt-5 flex gap-5 text-sm font-semibold">
+            <Link href="#browse" className="text-accent underline underline-offset-4">
+              Find your next useful thing ↓
+            </Link>
+            <Link
+              href="/listings/new"
+              className="hidden underline underline-offset-4 sm:inline"
+            >
+              Post a listing ↗
+            </Link>
+          </div>
+        </div>
+        <div className="relative mx-auto hidden w-full max-w-sm px-5 py-3 md:block">
+          <div className="bg-highlight absolute top-0 left-12 z-10 h-7 w-24 -rotate-6 opacity-80" />
+          <div className="border-border bg-surface shadow-card rotate-2 rounded-sm border px-6 pt-7 pb-4">
+            <p className="eyebrow text-fg-muted">Pass it on.</p>
+            <ItemIllustration category="books" className="text-accent mx-auto h-32 w-full" />
+            <p className="text-accent text-center text-xl font-bold">
+              One student’s last chapter.
+              <br />
+              Another’s fresh start.
+            </p>
+            <div className="border-border mt-5 flex justify-between border-t border-dashed pt-3 font-mono text-[10px] tracking-wider uppercase">
+              <span>Less waste</span>
+              <span>More possibility ↻</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="px-page py-10">
+      <section id="browse" className="px-page scroll-mt-24 pt-5 pb-7">
         <Suspense fallback={<div className="h-[50px]" />}>
           <DiscoverControls total={total} rangeStart={rangeStart} rangeEnd={rangeEnd} />
         </Suspense>
@@ -236,7 +250,7 @@ export default async function DiscoverPage(props: { searchParams: Promise<Search
           <div>
             <Eyebrow tone="on-dark">Have something useful?</Eyebrow>
             <DisplayHeading className="mt-2 text-[32px] tracking-[-0.03em]">
-              Don&apos;t let good stuff sit idle.
+              Someone on campus needs what you no longer use.
             </DisplayHeading>
             <p className="mt-3 text-[13px] text-white/70">
               Sell it, rent it, exchange it, or give it to another student.

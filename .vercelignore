@@ -1,0 +1,12 @@
+.next/
+.next-e2e/
+.vercel/
+.env*
+node_modules/
+.git/
+.agents/
+.claude/
+test-results/
+playwright-report/
+coverage/
+tsconfig.tsbuildinfo

@@ -4,3 +4,5 @@ coverage
 package-lock.json
 legacy
 *.md
+
+.next-e2e

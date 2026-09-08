@@ -88,7 +88,7 @@ export async function getListingBySlug(
   viewerId: EntityId | null,
 ): Promise<ListingDetailView | null> {
   const listing = await deps.listings.findBySlug(slug);
-  if (!listing) return null;
+  if (!listing || (listing.hidden && listing.sellerId !== viewerId)) return null;
   const isSaved = viewerId ? await deps.saved.isSaved(viewerId, listing.id) : false;
   return toDetailView(listing, isSaved);
 }
@@ -106,7 +106,12 @@ export async function listMyListings(
   deps: ListingDeps,
   sellerId: EntityId,
 ): Promise<readonly ListingCardView[]> {
-  const page = await deps.listings.search({ sellerId, status: undefined, limit: 60 });
+  const page = await deps.listings.search({
+    sellerId,
+    status: undefined,
+    limit: 60,
+    includeHidden: true,
+  });
   return page.items.map((listing) => toCardView(listing));
 }
 

@@ -67,6 +67,7 @@ function makeStore(initial: Conversation | null = makeConversation()) {
   };
 
   const conversations: ConversationRepository = {
+    lock: async () => undefined,
     findById: async (id: EntityId) =>
       state.conversation && state.conversation.id === id ? state.conversation : null,
     findByListingAndParticipants: async (listing, participants) => {

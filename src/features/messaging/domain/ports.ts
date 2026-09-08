@@ -70,6 +70,7 @@ export interface InboxDirectory {
 }
 
 export interface ConversationRepository {
+  lock(id: EntityId, uow: UnitOfWork): Promise<void>;
   findById(id: EntityId): Promise<Conversation | null>;
   findByListingAndParticipants(
     listingId: EntityId,
@@ -94,7 +95,7 @@ export interface ConversationRepository {
     input: TouchConversationInput,
     uow?: UnitOfWork,
   ): Promise<void>;
-  clearUnread(conversationId: EntityId, userId: EntityId): Promise<void>;
+  clearUnread(conversationId: EntityId, userId: EntityId, uow?: UnitOfWork): Promise<void>;
 }
 
 export interface MessageRepository {
@@ -102,8 +103,9 @@ export interface MessageRepository {
   listForConversation(
     conversationId: EntityId,
     options?: ListMessagesOptions,
+    uow?: UnitOfWork,
   ): Promise<readonly Message[]>;
   create(input: CreateMessageInput, uow?: UnitOfWork): Promise<Message>;
   /** Stamps `readAt` on everything the reader has not sent themselves. */
-  markRead(conversationId: EntityId, readerId: EntityId): Promise<void>;
+  markRead(conversationId: EntityId, readerId: EntityId, uow?: UnitOfWork): Promise<void>;
 }

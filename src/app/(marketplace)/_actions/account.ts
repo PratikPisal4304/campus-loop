@@ -9,6 +9,7 @@ import {
   requireUserOrRedirect,
   signOut,
   updateProfile,
+  updateEmailPreferences,
 } from "@/features/accounts";
 import type { AccountActionState } from "./form-state";
 
@@ -124,4 +125,15 @@ export async function deleteAccountAction(
   // politeness — every guard downstream would otherwise resolve a null user.
   await signOut({ redirectTo: "/" });
   return { status: "success", message: "Account deleted." };
+}
+
+export async function emailPreferencesAction(data: FormData) {
+  const user = await requireUserOrRedirect();
+  await updateEmailPreferences(
+    user.id,
+    data.get("messageEmails") === "on",
+    data.get("dealEmails") === "on",
+  );
+  revalidatePath("/settings");
+  return { success: "Email preferences saved." };
 }

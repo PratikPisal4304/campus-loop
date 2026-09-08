@@ -33,8 +33,8 @@
      clears 4.5:1 both as text on every ground we use and as a fill behind white — so it,
      not --color-orange, is what --color-accent resolves to. --color-orange stays for
      decorative fills and display type large enough to sit under the 3:1 rule. */
-  --color-accent-text: #a83a0c;
-  --color-accent-text-hover: #8f2f0c;
+  --color-accent-text: #254b3b;
+  --color-accent-text-hover: #183b2b;
 
   /* Grounds that carry the editorial feel */
   --color-sidebar: #1c1c1b;
@@ -42,9 +42,9 @@
   --color-sidebar-active: #302f2d;
   --color-sidebar-line: #393836;
   --color-sidebar-muted: #a6a39b;
-  --color-hero: #e6e0d4;
+  --color-hero: #eee9dc;
   --color-panel-sunk: #eee8dd;
-  --color-banner: #252524;
+  --color-banner: #203d32;
   --color-pulse: #d8e0d2;
   --color-checklist: #dce3d8;
   --color-highlight: #f0d88c;
@@ -70,7 +70,7 @@
    * overlap, so the darkened accent that fixed the light pages reads at 2.66:1 on the
    * sidebar. The original bright orange is 5.66:1 there, so dark surfaces keep it.
    */
-  --color-accent-on-dark: var(--color-orange);
+  --color-accent-on-dark: var(--color-yellow);
   --color-border: var(--color-line);
 
   /* Listing-card swatches. A listing with no photo still gets a distinct block,
@@ -210,5 +210,22 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  .form-input {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    padding: 10px 12px;
+    background: var(--color-surface);
+    color: var(--color-fg);
+    font-size: 14px;
+  }
+  .notice-paper {
+    background-image: linear-gradient(var(--color-border) 1px, transparent 1px);
+    background-size: 100% 28px;
   }
 }

@@ -43,4 +43,10 @@ export {
 export { initialsFor, trustScoreFor, type Role, type TrustScore } from "./domain/user";
 export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, validatePassword } from "./domain/password";
 export type { ChangePasswordInput } from "./application/security";
+export {
+  requestPasswordReset,
+  resetPassword,
+  getEmailPreferences,
+  updateEmailPreferences,
+} from "./infrastructure/recovery";
 export { toProfileView, type ProfileView } from "./application/profile";

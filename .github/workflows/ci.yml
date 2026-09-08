@@ -43,6 +43,8 @@ jobs:
       AUTH_URL: http://localhost:3000
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       SEED_PASSWORD: campus1234
+      EMAIL_DELIVERY: disabled
+      E2E_DATABASE_URL: postgresql://campus:campus@localhost:5432/campus_loop
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -54,7 +56,9 @@ jobs:
       # `migrate deploy` applies committed migrations without generating new ones — the
       # same command production runs.
       - run: npx prisma migrate deploy
+      - run: cp .env.example .env.local
       - run: npm run db:seed
+      - run: npm run test:integration
 
       - run: npx playwright install --with-deps chromium
       - run: npm run build

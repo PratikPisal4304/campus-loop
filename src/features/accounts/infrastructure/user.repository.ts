@@ -2,6 +2,7 @@ import "server-only";
 import type { User as UserRow } from "@prisma/client";
 import { toEmail, toEntityId, type Email, type EntityId } from "@/core/types/branded";
 import { prisma } from "@/shared/db/connection";
+import { cancelListingDeals } from "@/features/deals";
 import type { CreateUserInput, UpdateProfileInput, UserRepository } from "../domain/ports";
 import { isRole, type User } from "../domain/user";
 
@@ -105,7 +106,47 @@ export class PrismaUserRepository implements UserRepository {
     try {
       // Listings, saved items, conversation participation, messages, reviews and reports
       // all cascade from this row, so there is nothing to clean up by hand.
-      await prisma.user.delete({ where: { id }, select: { id: true } });
+      await prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw`SELECT id FROM users WHERE id = ${id} FOR UPDATE`;
+          const pending = await tx.deal.findMany({
+            where: { status: "pending", OR: [{ buyerId: id }, { sellerId: id }] },
+            select: { listingId: true },
+            orderBy: { listingId: "asc" },
+          });
+          for (const { listingId } of pending)
+            if (listingId) {
+              await tx.$queryRaw`SELECT id FROM listings WHERE id = ${listingId} FOR UPDATE`;
+              await cancelListingDeals(tx, listingId);
+              await tx.listing.updateMany({
+                where: { id: listingId, status: "reserved" },
+                data: { status: "active" },
+              });
+            }
+          const affected = await tx.review.findMany({
+            where: { raterId: id },
+            select: { subjectId: true },
+            distinct: ["subjectId"],
+          });
+          await tx.conversation.deleteMany({
+            where: { participants: { some: { userId: id } } },
+          });
+          await tx.user.delete({ where: { id } });
+          for (const { subjectId } of affected)
+            if (subjectId !== id) {
+              const rating = await tx.review.aggregate({
+                where: { subjectId },
+                _sum: { stars: true },
+                _count: true,
+              });
+              await tx.user.updateMany({
+                where: { id: subjectId },
+                data: { ratingSum: rating._sum.stars ?? 0, ratingCount: rating._count },
+              });
+            }
+        },
+        { timeout: 15000 },
+      );
       return true;
     } catch {
       return false;

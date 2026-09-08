@@ -1,78 +1,76 @@
 import Link from "next/link";
 import { initialsFor, type SessionUser } from "@/features/accounts";
-import { Button } from "@/components/ui/button";
-
-/**
- * The prototype rendered the signed-in and signed-out states simultaneously — the markup
- * closed `.user-area` early and left the Login link outside it, so "Guest", a Logout
- * button and a Login link were all visible at once. Here it is one branch or the other.
- *
- * The sign-out action arrives as a prop rather than by import: actions live in `app/`,
- * and a component reaching into a route would invert the dependency direction.
- */
+import { DesktopNav } from "./desktop-nav";
 export function Topbar({
   user,
   signOutAction,
+  unreadCount = 0,
 }: {
   user: SessionUser | null;
   signOutAction: () => Promise<void>;
+  unreadCount?: number;
 }) {
   return (
-    <header className="border-border bg-cream/95 px-page sticky top-0 z-50 flex h-[74px] items-center justify-between border-b backdrop-blur">
-      {/*
-        Below `lg` the sidebar is gone, so the topbar is the only place the app can say
-        its own name. Above it the sidebar carries the wordmark and this side stays empty
-        rather than repeating it — the wrapper is what keeps `justify-between` honest.
-
-        What used to live here was a pulsing green dot labelled "Online campus", which
-        nothing ever measured, next to a strapline that collapsed on phones and left the
-        separator behind. Neither said anything true, so both are gone.
-      */}
-      <div className="flex items-center">
+    <header className="border-border bg-surface sticky top-0 z-50 border-b">
+      <div className="px-page mx-auto flex h-20 max-w-[1440px] items-center justify-between gap-4">
         <Link
           href="/"
-          className="flex items-center gap-2.5 text-[16px] font-extrabold lg:hidden"
+          className="flex shrink-0 items-center gap-2.5 text-lg font-extrabold tracking-tight"
         >
-          <span className="bg-accent flex h-8 w-8 items-center justify-center rounded-full font-mono text-[12px] font-bold text-white">
-            CL
+          <span
+            className="bg-accent grid h-9 w-9 place-items-center rounded-md text-xl text-white"
+            aria-hidden="true"
+          >
+            ↻
           </span>
-          Campus Loop
-        </Link>
-      </div>
-
-      {user ? (
-        <div className="flex items-center gap-3">
-          <Link
-            href="/settings"
-            className="hover:bg-panel-sunk flex items-center gap-2.5 rounded-md px-1.5 py-1 transition-colors"
-          >
-            <span className="bg-avatar flex h-9 w-9 items-center justify-center rounded-full text-[12px] font-bold">
-              {initialsFor(user.name)}
+          <span>
+            campus<span className="text-accent">loop</span>
+            <span className="text-fg-muted hidden font-mono text-[9px] tracking-[.18em] sm:block">
+              THE STUDENT NOTICEBOARD
             </span>
-            <span className="hidden text-[13px] font-semibold sm:inline">{user.name}</span>
-          </Link>
-          <form action={signOutAction}>
-            <Button type="submit" variant="ghost" size="sm">
-              Log out
-            </Button>
-          </form>
+          </span>
+        </Link>
+        <DesktopNav unreadCount={unreadCount} />
+        <div className="flex items-center gap-3">
+          {user ? (
+            <>
+              <Link
+                href="/listings/new"
+                className="bg-accent hover:bg-accent-hover hidden rounded-md px-4 py-2.5 text-sm font-semibold text-white sm:block"
+              >
+                + List an item
+              </Link>
+              {user.role === "admin" && (
+                <Link href="/admin" className="text-accent text-xs font-semibold">
+                  Admin
+                </Link>
+              )}
+              <Link
+                href="/settings"
+                aria-label="Account settings"
+                className="bg-avatar grid h-10 w-10 place-items-center rounded-full text-xs font-bold"
+              >
+                {initialsFor(user.name)}
+              </Link>
+              <form action={signOutAction}>
+                <button className="text-fg-muted text-xs hover:underline">Log out</button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="text-sm font-semibold whitespace-nowrap">
+                Log in
+              </Link>
+              <Link
+                href="/signup"
+                className="bg-accent hover:bg-accent-hover rounded-md px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                Join<span className="hidden sm:inline"> the loop</span>
+              </Link>
+            </>
+          )}
         </div>
-      ) : (
-        <div className="flex items-center gap-2">
-          <Link
-            href="/login"
-            className="border-border hover:bg-dark rounded-sm border px-3.5 py-2 text-[12px] font-semibold transition-colors hover:text-white"
-          >
-            Log in
-          </Link>
-          <Link
-            href="/signup"
-            className="bg-accent hover:bg-accent-hover rounded-sm px-3.5 py-2 text-[12px] font-semibold text-white transition-colors"
-          >
-            Join
-          </Link>
-        </div>
-      )}
+      </div>
     </header>
   );
 }
